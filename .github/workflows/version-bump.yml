@@ -1,0 +1,80 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && github.actor != 'github-actions[bot]'"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Bump patch version in package.json, tauri.conf.json, and Cargo.toml
+        shell: bash
+        run: |
+          bun -e '
+            const fs = require("fs");
+
+            const pkgPath = "package.json";
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+            const current = pkg.version || "0.1.0";
+            const parts = current.split(".").map(Number);
+            if (parts.length !== 3 || parts.some(Number.isNaN)) {
+              throw new Error(`Invalid semver in package.json: ${current}`);
+            }
+            parts[2] += 1;
+            const next = parts.join(".");
+
+            pkg.version = next;
+            fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+
+            const tauriPath = "src-tauri/tauri.conf.json";
+            if (fs.existsSync(tauriPath)) {
+              const tauriConf = JSON.parse(fs.readFileSync(tauriPath, "utf8"));
+              tauriConf.version = next;
+              fs.writeFileSync(tauriPath, JSON.stringify(tauriConf, null, 2) + "\n");
+            }
+
+            const cargoPath = "src-tauri/Cargo.toml";
+            if (fs.existsSync(cargoPath)) {
+              let cargoToml = fs.readFileSync(cargoPath, "utf8");
+              cargoToml = cargoToml.replace(
+                /^version\s*=\s*"[^"]+"/m,
+                `version = "${next}"`
+              );
+              fs.writeFileSync(cargoPath, cargoToml);
+            }
+
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `new_version=${next}\n`);
+          '
+
+      - name: Commit version bump and push tag
+        id: git_push
+        shell: bash
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          TAG_NAME="v${NEW_VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+          git commit -m "chore(release): bump version to ${TAG_NAME} [skip ci]"
+          git tag -a "${TAG_NAME}" -m "Release ${TAG_NAME}"
+
+          git pull --rebase origin main
+          git push origin HEAD:main
+          git push origin "${TAG_NAME}"
