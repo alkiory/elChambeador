@@ -28,6 +28,7 @@ interface CoatPalette {
   hindOutline: string;
   spot?: string;
   stripe?: string;
+  muzzleGlow?: boolean;
 }
 
 interface FloatingKeyItem {
@@ -75,30 +76,32 @@ const COAT_PALETTES: Record<CatCoat, CoatPalette> = {
     hindOutline: "#09090b",
   },
   orange: {
-    body: "#f6a25e",
-    shade: "#b45309",
-    point: "#d97724",
-    pawTip: "#f6a25e",
-    earLeft: "#f6a25e",
-    earRight: "#f6a25e",
+    body: "#f4a15e",
+    shade: "#b55214",
+    point: "#c45a16",
+    pawTip: "#f4a15e",
+    earLeft: "#f4a15e",
+    earRight: "#f4a15e",
     earInner: "#fed7aa",
-    eyeIris: "#34d399",
+    eyeIris: "#14b88a",
     whisker: "#fff7ed",
     hindOutline: "#9a3412",
     stripe: "#d47328",
+    muzzleGlow: true,
   },
   gray: {
-    body: "#9aa5b4",
+    body: "#8e99a8",
     shade: "#475569",
-    point: "#526071",
-    pawTip: "#64748b",
-    earLeft: "#9aa5b4",
-    earRight: "#9aa5b4",
+    point: "#3e4959",
+    pawTip: "#7a8696",
+    earLeft: "#8e99a8",
+    earRight: "#8e99a8",
     earInner: "#f3b8be",
     eyeIris: "#f59e0b",
     whisker: "#e2e8f0",
     hindOutline: "#475569",
     stripe: "#64748b",
+    muzzleGlow: true,
   },
   calico: {
     body: "#faf9f5",
@@ -1244,8 +1247,15 @@ export function CatDeskScene({
                 ref={faceRef}
                 transform={`translate(${(gazeOffset.headX * 0.55).toFixed(2)}, ${(gazeOffset.headY * 0.55).toFixed(2)})`}
               >
-                {settings.catCoat === "siamese" && (
-                  <ellipse cx="-16" cy="-46" rx="35" ry="22" fill={`url(#siameseMuzzle-${settings.catCoat})`} />
+                {(settings.catCoat === "siamese" || c.muzzleGlow) && (
+                  <ellipse
+                    cx="-15"
+                    cy="-45"
+                    rx="26"
+                    ry="18"
+                    fill={`url(#muzzleCircle-${settings.catCoat})`}
+                    pointer-events-none
+                  />
                 )}
 
                 {isSleeping && (
