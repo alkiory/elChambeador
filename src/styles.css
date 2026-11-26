@@ -1,0 +1,79 @@
+@import "tailwindcss" source("./");
+
+html,
+body,
+#app {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+@keyframes rgbFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.rgb-underglow {
+  background: linear-gradient(90deg, #ff0055, #ff9900, #00ffcc, #0088ff, #aa00ff, #ff0055);
+  background-size: 300% 300%;
+  animation: rgbFlow 4s linear infinite;
+}
+
+@keyframes keycapFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.82);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(0px) scale(1.04);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+}
+
+.anim-keycap-pop {
+  animation: keycapFloat 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes floatHeart {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-28px) scale(1.1); }
+}
+
+.anim-heart {
+  animation: floatHeart 1.1s ease-out forwards;
+}
+
+@keyframes sleepZzz {
+  0% {
+    opacity: 0;
+    transform: translate(0px, 0px) scale(0.7);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, -28px) scale(1.15);
+  }
+}
+
+.anim-zzz-1 {
+  animation: sleepZzz 2.6s ease-in-out infinite;
+}
+
+.anim-zzz-2 {
+  animation: sleepZzz 2.6s ease-in-out 1.3s infinite;
+}
