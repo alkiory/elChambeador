@@ -947,6 +947,7 @@
     }
 
     .os-option {
+      display: block;
       background: var(--surface-card-strong);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-md);
@@ -958,6 +959,11 @@
     .os-option:hover {
       border-color: var(--accent-amber);
       transform: translateY(-2px);
+    }
+
+    .os-option.is-detected {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 0 1px var(--accent-amber);
     }
 
     .modal-notice {
@@ -1068,9 +1074,10 @@
               class="btn btn-secondary">
               Apoyar al dev
             </a>
-            <button type="button" id="headerDownloadBtn" class="btn btn-primary">
+            <a href="https://github.com/alkiory/elChambeador/releases/latest" data-download-cta="header"
+              class="btn btn-primary">
               Descargar
-            </button>
+            </a>
           </div>
         </div>
       </header>
@@ -1099,9 +1106,10 @@
               </p>
 
               <div class="cta-group">
-                <button type="button" id="heroDownloadBtn" class="btn btn-primary">
+                <a href="https://github.com/alkiory/elChambeador/releases/latest" data-download-cta="hero"
+                  class="btn btn-primary">
                   Descargar el Chambeador
-                </button>
+                </a>
                 <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer"
                   class="btn btn-secondary">
                   Apoyar al dev
@@ -1460,9 +1468,10 @@
                 </div>
 
                 <div class="cta-group" style="margin-bottom: 0;">
-                  <button type="button" id="pitchDownloadBtn" class="btn btn-primary">
+                  <a href="https://github.com/alkiory/elChambeador/releases/latest" data-download-cta="pitch"
+                    class="btn btn-primary">
                     Probar en mi escritorio
-                  </button>
+                  </a>
                   <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer"
                     class="btn btn-secondary">
                     Apoyar al dev
@@ -1621,7 +1630,9 @@
           <nav class="footer-nav" aria-label="Enlaces legales y de descarga">
             <button type="button" id="footerTermsBtn">Términos y condiciones</button>
             <button type="button" id="footerPrivacyBtn">Privacidad</button>
-            <button type="button" id="footerDownloadBtn">Descargar</button>
+            <a href="https://github.com/alkiory/elChambeador/releases/latest" data-download-cta="footer">
+              Descargar
+            </a>
             <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer">
               Apoyar al dev
             </a>
@@ -1757,6 +1768,138 @@
       const IDLE_CHECK_MS = 4500;
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+      /* =========================================================================
+         OS DETECTION & LATEST GITHUB RELEASE DOWNLOAD RESOLVER
+         ========================================================================= */
+      const GITHUB_REPO = "alkiory/elChambeador";
+      const GITHUB_RELEASES_LATEST = `https://github.com/${GITHUB_REPO}/releases/latest`;
+      const GITHUB_API_LATEST = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+
+      const OS_META = {
+        windows: {
+          key: "windows",
+          label: "Windows",
+          subtitle: "Instalador para Windows",
+          exts: [".msi", ".exe"],
+        },
+        macos: {
+          key: "macos",
+          label: "macOS",
+          subtitle: "Instalador para macOS",
+          exts: [".dmg", ".app.tar.gz", ".tar.gz"],
+        },
+        linux: {
+          key: "linux",
+          label: "Linux",
+          subtitle: "Paquete para Linux",
+          exts: [".appimage", ".deb", ".rpm"],
+        },
+        other: {
+          key: "other",
+          label: "Tu sistema",
+          subtitle: "Ver todas las descargas",
+          exts: [],
+        },
+      };
+
+      function detectUserOS() {
+        const ua = (navigator.userAgent || "").toLowerCase();
+        const platform = (navigator.platform || "").toLowerCase();
+        if (ua.includes("win") || platform.includes("win")) return "windows";
+        if (ua.includes("mac") || ua.includes("darwin") || platform.includes("mac")) return "macos";
+        if (ua.includes("linux") || platform.includes("linux")) return "linux";
+        return "other";
+      }
+
+      function findAssetForOS(assets, osKey) {
+        const meta = OS_META[osKey];
+        if (!Array.isArray(assets) || !meta || !meta.exts.length) return null;
+        const lower = (name) => (name || "").toLowerCase();
+        for (const ext of meta.exts) {
+          const match = assets.find((a) => lower(a.name).endsWith(ext) && a.browser_download_url);
+          if (match) return match;
+        }
+        return null;
+      }
+
+      let cachedRelease = null;
+
+      async function fetchLatestRelease() {
+        if (cachedRelease && Date.now() - cachedRelease.fetchedAt < 120000) {
+          return cachedRelease.data;
+        }
+        try {
+          const res = await fetch(GITHUB_API_LATEST, {
+            headers: { Accept: "application/vnd.github+json" },
+          });
+          if (!res.ok) return null;
+          const data = await res.json();
+          cachedRelease = { data, fetchedAt: Date.now() };
+          return data;
+        } catch {
+          return null;
+        }
+      }
+
+      async function resolveDownloadTarget(osKey) {
+        const release = await fetchLatestRelease();
+        const asset = release ? findAssetForOS(release.assets, osKey) : null;
+        if (asset) {
+          return {
+            url: asset.browser_download_url,
+            direct: true,
+            tag: release.tag_name || "",
+            fileName: asset.name,
+          };
+        }
+        return {
+          url: (release && release.html_url) || GITHUB_RELEASES_LATEST,
+          direct: false,
+          tag: (release && release.tag_name) || "",
+          fileName: "",
+        };
+      }
+
+      function triggerDownloadOrRedirect(url, direct) {
+        if (direct) {
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "");
+          link.rel = "noopener noreferrer";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        } else {
+          window.location.assign(url);
+        }
+      }
+
+      const detectedOS = detectUserOS();
+      const heroDownloadBtn = document.getElementById("heroDownloadBtn");
+      const headerDownloadBtn = document.getElementById("headerDownloadBtn");
+      const footerDownloadBtn = document.getElementById("footerDownloadBtn");
+      const pitchDownloadBtn = document.getElementById("pitchDownloadBtn");
+
+      if (heroDownloadBtn && detectedOS !== "other" && OS_META[detectedOS]) {
+        heroDownloadBtn.textContent = `Descargar para ${OS_META[detectedOS].label}`;
+      }
+
+      // Sync href with matching asset when available, and handle click with instant resolution
+      resolveDownloadTarget(detectedOS).then((target) => {
+        [heroDownloadBtn, headerDownloadBtn, footerDownloadBtn, pitchDownloadBtn].forEach((el) => {
+          if (el) el.setAttribute("href", target.url);
+        });
+      });
+
+      [heroDownloadBtn, headerDownloadBtn, footerDownloadBtn].forEach((el) => {
+        if (!el) return;
+        el.addEventListener("click", async (e) => {
+          e.preventDefault();
+          const target = await resolveDownloadTarget(detectedOS);
+          triggerDownloadOrRedirect(target.url, target.direct);
+        });
+      });
+
       const openCatCanvas = document.getElementById("openCatCanvas");
       const catSvg = document.getElementById("catSvg");
       const petBubble = document.getElementById("petBubble");
@@ -1794,8 +1937,8 @@
       let gazeNormX = 0.5;
       let gazeNormY = 0.5;
       let isSleeping = false;
-      let idleState = "active"; // active | lookAround | groom | blink
-      let groomPhase = "none"; // none | bow | lick | return
+      let idleState = "active";
+      let groomPhase = "none";
       let tongueOut = false;
       let isPetting = false;
       let lastActivityTs = Date.now();
@@ -1897,7 +2040,6 @@
         mouseOffset = { x: 0, y: 0 };
       }
 
-      // Full-page pointer tracking so the cat grabs the mouse and looks anywhere on screen
       function mapPointerAcrossPage(clientX, clientY) {
         if (!catSvg) return;
         const rect = catSvg.getBoundingClientRect();
@@ -1941,7 +2083,6 @@
           leftPupilGroup.setAttribute("transform", `translate(${(px + conv).toFixed(1)}, ${py.toFixed(1)}) scale(${scale})`);
           rightPupilGroup.setAttribute("transform", `translate(${(px - conv).toFixed(1)}, ${py.toFixed(1)}) scale(${scale})`);
 
-          // Take the mouse across the entire page with the left paw
           const mx = dx * 16;
           const my = dy * 10;
           mouseOffset = { x: mx, y: my };
@@ -1970,7 +2111,6 @@
 
       openCatCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
-      // Full-page typing reaction
       function handleKeyPulse(label) {
         wakeAndTouch();
         const now = Date.now();
@@ -2058,7 +2198,6 @@
         groomTimers = [t1, t2, t3, t4, t5, t6];
       }
 
-      // Autonomous idle behaviors & 60s sleep timer
       window.setInterval(() => {
         const elapsed = Date.now() - lastActivityTs;
         if (!isSleeping && elapsed >= SLEEP_TIMEOUT_MS) {
@@ -2188,7 +2327,6 @@
         }
       }
 
-      // Smooth grid-row FAQ accordion
       document.querySelectorAll(".faq-trigger").forEach((trigger) => {
         trigger.addEventListener("click", () => {
           const item = trigger.closest(".faq-item");
@@ -2200,47 +2338,59 @@
         });
       });
 
-      // Modal dialog for Download, Terms & Privacy
       const infoModal = document.getElementById("infoModal");
       const modalTitle = document.getElementById("modalTitle");
       const modalBody = document.getElementById("modalBody");
       const modalNotice = document.getElementById("modalNotice");
       const modalCloseBtn = document.getElementById("modalCloseBtn");
 
-      function openModal(type) {
+      async function openModal(type) {
         modalNotice.hidden = true;
         modalNotice.textContent = "";
 
         if (type === "download") {
-          modalTitle.textContent = "Descargar el Chambeador";
+          const detectedLabel = detectedOS !== "other" ? OS_META[detectedOS].label : "no detectado";
           modalBody.innerHTML = `
-            <p>Elige tu sistema operativo para obtener el instalador de <strong>el Chambeador</strong> (un gato por ahora):</p>
+            <p>Sistema detectado: <strong>${detectedLabel}</strong>. Elige tu sistema operativo para descargar el último paquete o abrir la release en GitHub:</p>
             <div class="os-choices">
-              <button type="button" class="os-option" data-os="Windows">
+              <a href="${GITHUB_RELEASES_LATEST}" class="os-option ${detectedOS === "windows" ? "is-detected" : ""}" data-os-key="windows">
                 <strong style="display: block; color: var(--ink-primary);">Windows</strong>
-                <span style="font-size: 0.78rem; color: var(--ink-muted);">Escritorio</span>
-              </button>
-              <button type="button" class="os-option" data-os="macOS">
+                <span style="font-size: 0.78rem; color: var(--ink-muted);">${detectedOS === "windows" ? "Detectado" : ".msi / .exe"}</span>
+              </a>
+              <a href="${GITHUB_RELEASES_LATEST}" class="os-option ${detectedOS === "macos" ? "is-detected" : ""}" data-os-key="macos">
                 <strong style="display: block; color: var(--ink-primary);">macOS</strong>
-                <span style="font-size: 0.78rem; color: var(--ink-muted);">Escritorio</span>
-              </button>
-              <button type="button" class="os-option" data-os="Linux">
+                <span style="font-size: 0.78rem; color: var(--ink-muted);">${detectedOS === "macos" ? "Detectado" : ".dmg / .tar.gz"}</span>
+              </a>
+              <a href="${GITHUB_RELEASES_LATEST}" class="os-option ${detectedOS === "linux" ? "is-detected" : ""}" data-os-key="linux">
                 <strong style="display: block; color: var(--ink-primary);">Linux</strong>
-                <span style="font-size: 0.78rem; color: var(--ink-muted);">Escritorio</span>
-              </button>
+                <span style="font-size: 0.78rem; color: var(--ink-muted);">${detectedOS === "linux" ? "Detectado" : ".AppImage / .deb"}</span>
+              </a>
             </div>
             <p style="font-size: 0.8rem; color: var(--ink-muted);">
               ¿Quieres apoyar el desarrollo continuo? Visita <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer" style="color: var(--accent-amber); font-weight: 700; text-decoration: underline;">paypal.me/SergioCampbelldev</a>.
             </p>
           `;
 
-          modalBody.querySelectorAll(".os-option").forEach((option) => {
-            option.addEventListener("click", () => {
-              const osLabel = option.getAttribute("data-os");
+          infoModal.hidden = false;
+          modalCloseBtn.focus();
+
+          const choices = modalBody.querySelectorAll(".os-option");
+          for (const option of choices) {
+            const osKey = option.getAttribute("data-os-key");
+            const target = await resolveDownloadTarget(osKey);
+            option.setAttribute("href", target.url);
+            option.addEventListener("click", (e) => {
+              e.preventDefault();
               modalNotice.hidden = false;
-              modalNotice.textContent = `Instalador seleccionado para ${osLabel}. Si el gato no reacciona fuera de su ventana, revisa los permisos de entrada del sistema.`;
+              if (modalNotice) {
+                modalNotice.hidden = false; modalNotice.textContent =
+                  modalNotice.textContent = target.direct
+                    ? `Iniciando descarga (${target.fileName})... Si no arranca, revisa el bloqueador de descargas del navegador.`
+                    : `Redirigiendo a la release más reciente en GitHub...`;
+              }
+              triggerDownloadOrRedirect(target.url, target.direct);
             });
-          });
+          }
         } else if (type === "terms") {
           modalTitle.textContent = "Términos y condiciones";
           modalBody.innerHTML = `
@@ -2248,6 +2398,8 @@
             <p>El proyecto está en evolución continua: las animaciones, pelajes, pausas y futuros compañeros pueden ampliarse con el tiempo.</p>
             <p>Su uso queda sujeto a los ajustes y permisos de tu propio equipo.</p>
           `;
+          infoModal.hidden = false;
+          modalCloseBtn.focus();
         } else if (type === "privacy") {
           modalTitle.textContent = "Privacidad";
           modalBody.innerHTML = `
@@ -2255,23 +2407,22 @@
             <p>La posición del cursor y las pulsaciones se interpretan al momento en tu dispositivo para animar al personaje y gestionar su siesta tras 60 segundos sin actividad.</p>
             <p>Los aportes voluntarios se gestionan directamente mediante PayPal.</p>
           `;
+          infoModal.hidden = false;
+          modalCloseBtn.focus();
         }
-
-        infoModal.hidden = false;
-        modalCloseBtn.focus();
       }
 
       function closeModal() {
         infoModal.hidden = true;
       }
 
-      document.getElementById("headerDownloadBtn").addEventListener("click", () => openModal("download"));
-      document.getElementById("heroDownloadBtn").addEventListener("click", () => openModal("download"));
-      document.getElementById("pitchDownloadBtn").addEventListener("click", () => openModal("download"));
-      document.getElementById("footerDownloadBtn").addEventListener("click", () => openModal("download"));
-      document.getElementById("footerTermsBtn").addEventListener("click", () => openModal("terms"));
-      document.getElementById("footerPrivacyBtn").addEventListener("click", () => openModal("privacy"));
-      modalCloseBtn.addEventListener("click", closeModal);
+      pitchDownloadBtn?.addEventListener("click", (e) => {
+        e.preventDefault();
+        openModal("download");
+      });
+      document.getElementById("footerTermsBtn")?.addEventListener("click", () => openModal("terms"));
+      document.getElementById("footerPrivacyBtn")?.addEventListener("click", () => openModal("privacy"));
+      modalCloseBtn?.addEventListener("click", closeModal);
 
       infoModal.addEventListener("click", (e) => {
         if (e.target === infoModal) closeModal();
