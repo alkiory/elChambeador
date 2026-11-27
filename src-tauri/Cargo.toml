@@ -1,6 +1,6 @@
 [package]
 name = "elchambeador"
-version = "0.1.8"
+version = "0.1.9"
 description = "elChambeador Desktop Companion"
 authors = ["alkiory-dev"]
 edition = "2021"
