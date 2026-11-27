@@ -7,6 +7,7 @@ export interface GlobalInputState {
   keyTick: number;
   isTyping: boolean;
   activeMouseBtn: string | null;
+  mouseClickTick: number;
   lastActivityTs: number;
   lastMouseTs: number;
 }
@@ -31,6 +32,7 @@ export function useGlobalInput(): GlobalInputState {
   const [keyTick, setKeyTick] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [activeMouseBtn, setActiveMouseBtn] = useState<string | null>(null);
+  const [mouseClickTick, setMouseClickTick] = useState(0);
   const [lastActivityTs, setLastActivityTs] = useState(() => Date.now());
   const [lastMouseTs, setLastMouseTs] = useState(() => Date.now());
 
@@ -72,14 +74,12 @@ export function useGlobalInput(): GlobalInputState {
         setLastMouseTs(now);
         setLastActivityTs(now);
         setActiveMouseBtn(button);
+        setMouseClickTick((t) => t + 1);
       } else if (kind === "up") {
         setActiveMouseBtn(null);
         setLastMouseTs(now);
         setLastActivityTs(now);
       }
-
-      setLastMouseTs(now);
-      setLastActivityTs(now);
     }).then((fn) => unlisteners.push(fn));
 
     return () => {
@@ -94,6 +94,7 @@ export function useGlobalInput(): GlobalInputState {
     keyTick,
     isTyping,
     activeMouseBtn,
+    mouseClickTick,
     lastActivityTs,
     lastMouseTs,
   };

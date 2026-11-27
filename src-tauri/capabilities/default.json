@@ -7,12 +7,17 @@
   ],
   "permissions": [
     "core:default",
+    "core:window:allow-set-size",
+    "opener:default",
     "core:window:allow-start-dragging",
     "core:window:allow-set-ignore-cursor-events",
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:event:default",
     "autostart:default",
-    "notification:default"
+    "notification:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

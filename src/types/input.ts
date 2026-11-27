@@ -12,11 +12,13 @@ export interface MousePayload {
   button?: string;
 }
 
-export type KeyboardSkin = "dark" | "light";
 export type CatCoat = "siamese" | "white" | "black" | "orange" | "gray" | "calico";
+export type KeyboardSkin = "dark" | "light";
 
 export interface AppSettings {
+  catCoat: CatCoat;
   skin: KeyboardSkin;
   highlightSpecialKeys: boolean;
-  catCoat: CatCoat;
+  avatarScale: number;
+  keySounds: boolean;
 }

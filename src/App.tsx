@@ -1,18 +1,24 @@
 import { useEffect, useState } from "preact/hooks";
 import { listen, emit } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CatDeskScene } from "./components/CatDeskScene";
 import { SettingsDrawer } from "./components/SettingsDrawer";
 import { useGlobalInput } from "./hooks/useGlobalInput";
 import { AppSettings } from "./types/input";
+import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 
 const STORAGE_KEY = "bongo-cat-settings-v1";
 const IS_DEV = import.meta.env.DEV;
+
+// Ajusta estas medidas base a las que tengas definidas en src-tauri/tauri.conf.json:
+const BASE_WINDOW_WIDTH = 380;
+const BASE_WINDOW_HEIGHT = 300;
 
 const DEFAULT_SETTINGS: AppSettings = {
   catCoat: "siamese",
   skin: "dark",
   highlightSpecialKeys: true,
+  avatarScale: 1,
+  keySounds: false,
 };
 
 function loadInitialSettings(): AppSettings {
@@ -31,12 +37,21 @@ export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
+    const scale = Math.min(1.5, Math.max(0.65, settings.avatarScale || 1));
+    const width = Math.round(BASE_WINDOW_WIDTH * scale);
+    const height = Math.round(BASE_WINDOW_HEIGHT * scale);
+
+    getCurrentWindow()
+      .setSize(new LogicalSize(width, height))
+      .catch((err) => console.error("Error redimensionando ventana:", err));
+  }, [settings.avatarScale]);
+
+  useEffect(() => {
     document.documentElement.style.backgroundColor = IS_DEV ? "#09090b" : "transparent";
     document.body.style.backgroundColor = IS_DEV ? "#09090b" : "transparent";
   }, []);
 
-  const updateSettings = (next: AppSettings) => {
-    setSettings(next);
+  const persistSettings = (next: AppSettings) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
@@ -45,10 +60,24 @@ export function App() {
     emit("settings-updated", next).catch(() => { });
   };
 
+  const updateSettings = (next: AppSettings) => {
+    const clampedScale = Math.min(1.5, Math.max(0.65, Number(next.avatarScale) || 1));
+    const normalized: AppSettings = { ...next, avatarScale: clampedScale };
+    setSettings(normalized);
+    persistSettings(normalized);
+  };
+
   useEffect(() => {
     const unlistenPromise = listen<Partial<AppSettings>>("tray-update-settings", (event) => {
       setSettings((prev) => {
-        const merged = { ...prev, ...event.payload };
+        const merged: AppSettings = {
+          ...prev,
+          ...event.payload,
+          avatarScale: Math.min(
+            1.5,
+            Math.max(0.65, Number(event.payload.avatarScale ?? prev.avatarScale) || 1)
+          ),
+        };
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         } catch {
@@ -101,6 +130,7 @@ export function App() {
         keyTick={input.keyTick}
         isTyping={input.isTyping}
         activeMouseBtn={input.activeMouseBtn}
+        mouseClickTick={input.mouseClickTick}
         lastActivityTs={input.lastActivityTs}
         lastMouseTs={input.lastMouseTs}
         settings={settings}

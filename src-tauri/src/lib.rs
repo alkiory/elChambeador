@@ -164,7 +164,6 @@ fn is_cursor_inside_cat_hitbox(window: &WebviewWindow, x: f64, y: f64) -> bool {
         return false;
     }
 
-    // Coordenadas normalizadas [0.0 .. 1.0] dentro de la ventana
     let nx = (x - wx) / ww;
     let ny = (y - wy) / wh;
 
@@ -172,11 +171,8 @@ fn is_cursor_inside_cat_hitbox(window: &WebviewWindow, x: f64, y: f64) -> bool {
         return false;
     }
 
-    // Zona 1: Cabeza y orejas del gato (centro-arriba)
     let in_head = (0.31..=0.58).contains(&nx) && (0.13..=0.46).contains(&ny);
-    // Zona 2: Torso y cola curva
     let in_body = (0.33..=0.76).contains(&nx) && (0.42..=0.74).contains(&ny);
-    // Zona 3: Ratón y teclado inferior
     let in_desk = (0.18..=0.80).contains(&nx) && (0.68..=0.92).contains(&ny);
 
     in_head || in_body || in_desk
@@ -330,12 +326,33 @@ fn setup_tray_menu(app: &tauri::App) -> tauri::Result<()> {
     let skin_submenu =
         Submenu::with_items(handle, "Skin del teclado", true, &[&skin_dark, &skin_light])?;
 
+    let scale_65 = MenuItem::with_id(handle, "scale:65", "65% (Pequeño)", true, None::<&str>)?;
+    let scale_80 = MenuItem::with_id(handle, "scale:80", "80%", true, None::<&str>)?;
+    let scale_100 = MenuItem::with_id(handle, "scale:100", "100% (Normal)", true, None::<&str>)?;
+    let scale_125 = MenuItem::with_id(handle, "scale:125", "125%", true, None::<&str>)?;
+    let scale_150 = MenuItem::with_id(handle, "scale:150", "150% (Grande)", true, None::<&str>)?;
+    let scale_submenu = Submenu::with_items(
+        handle,
+        "Tamaño del gato",
+        true,
+        &[&scale_65, &scale_80, &scale_100, &scale_125, &scale_150],
+    )?;
+
     let amber_item = CheckMenuItem::with_id(
         handle,
         "toggle:amber",
         "Acentos ámbar",
         true,
         true,
+        None::<&str>,
+    )?;
+
+    let sounds_item = CheckMenuItem::with_id(
+        handle,
+        "toggle:sounds",
+        "Sonidos de teclado y ratón",
+        true,
+        false,
         None::<&str>,
     )?;
 
@@ -356,7 +373,9 @@ fn setup_tray_menu(app: &tauri::App) -> tauri::Result<()> {
         &[
             &coat_submenu,
             &skin_submenu,
+            &scale_submenu,
             &amber_item,
+            &sounds_item,
             &PredefinedMenuItem::separator(handle)?,
             &autostart_item,
             &PredefinedMenuItem::separator(handle)?,
@@ -365,6 +384,7 @@ fn setup_tray_menu(app: &tauri::App) -> tauri::Result<()> {
     )?;
 
     let amber_clone = amber_item.clone();
+    let sounds_clone = sounds_item.clone();
     let autostart_clone = autostart_item.clone();
 
     TrayIconBuilder::new()
@@ -377,21 +397,35 @@ fn setup_tray_menu(app: &tauri::App) -> tauri::Result<()> {
                 let _ = app.emit("tray-update-settings", json!({ "catCoat": coat }));
             } else if let Some(skin) = id.strip_prefix("skin:") {
                 let _ = app.emit("tray-update-settings", json!({ "skin": skin }));
+            } else if let Some(scale_str) = id.strip_prefix("scale:") {
+                if let Ok(pct) = scale_str.parse::<f64>() {
+                    let _ = app.emit(
+                        "tray-update-settings",
+                        json!({ "avatarScale": pct / 100.0 }),
+                    );
+                }
             } else if id == "toggle:amber" {
                 let checked = amber_clone.is_checked().unwrap_or(true);
                 let _ = app.emit(
                     "tray-update-settings",
                     json!({ "highlightSpecialKeys": checked }),
                 );
+            } else if id == "toggle:sounds" {
+                let checked = sounds_clone.is_checked().unwrap_or(false);
+                let _ = app.emit("tray-update-settings", json!({ "keySounds": checked }));
             } else if id == "toggle:autostart" {
                 let manager = app.autolaunch();
-                let next = !manager.is_enabled().unwrap_or(false);
-                if next {
-                    let _ = manager.enable();
+                let want_enable = autostart_clone.is_checked().unwrap_or(false);
+                let res = if want_enable {
+                    manager.enable()
                 } else {
-                    let _ = manager.disable();
+                    manager.disable()
+                };
+                if let Err(err) = res {
+                    eprintln!("Error configurando autostart: {:?}", err);
                 }
-                let _ = autostart_clone.set_checked(next);
+                let actual = manager.is_enabled().unwrap_or(false);
+                let _ = autostart_clone.set_checked(actual);
             } else if id == "app:quit" {
                 app.exit(0);
             }
@@ -426,7 +460,6 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_shadow(false);
                 let _ = window.set_icon(build_cat_face_icon());
-                // let _ = window.set_ignore_cursor_events(true);
             }
             setup_tray_menu(app)?;
             spawn_input_listener(app.handle().clone());

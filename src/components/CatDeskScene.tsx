@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { animate } from "animejs";
 import { AppSettings, CatCoat } from "../types/input";
+import { deskAudio } from "../utils/deskAudio";
 
 interface Props {
   normMouse: { x: number; y: number };
@@ -8,12 +9,21 @@ interface Props {
   keyTick: number;
   isTyping: boolean;
   activeMouseBtn: string | null;
+  mouseClickTick: number;
   lastActivityTs: number;
   lastMouseTs: number;
   settings: AppSettings;
 }
 
-type IdleState = "active" | "lookAround" | "groom" | "blink";
+type IdleState =
+  | "active"
+  | "lookAround"
+  | "groom"
+  | "blink"
+  | "earTwitch"
+  | "stretch"
+  | "curiousTilt"
+  | "tailFlick";
 
 interface CoatPalette {
   body: string;
@@ -236,6 +246,16 @@ function buildArticulatedLimb(
   return { armPath, innerEdge, outerEdge, elbowCrease };
 }
 
+const RANDOM_IDLE_POOL: Exclude<IdleState, "active">[] = [
+  "lookAround",
+  "groom",
+  "blink",
+  "earTwitch",
+  "stretch",
+  "curiousTilt",
+  "tailFlick",
+];
+
 const SPECIAL_REACT_KEYS = new Set(["Escape", "Enter", "Backspace", "Space"]);
 const SLEEP_TIMEOUT_MS = 60_000;
 const MOUSE_RELEASE_MS = 1_500;
@@ -246,12 +266,14 @@ export function CatDeskScene({
   keyTick,
   isTyping,
   activeMouseBtn,
+  mouseClickTick,
   lastActivityTs,
   lastMouseTs,
   settings,
 }: Props) {
   const c = COAT_PALETTES[settings.catCoat];
   const isDarkKb = settings.skin === "dark";
+  const avatarScale = Math.min(1.5, Math.max(0.65, settings.avatarScale || 1));
 
   const upperBodyPivotRef = useRef<SVGGElement | null>(null);
   const torsoRef = useRef<SVGGElement | null>(null);
@@ -259,7 +281,7 @@ export function CatDeskScene({
   const faceRef = useRef<SVGGElement | null>(null);
   const leftEarRef = useRef<SVGGElement | null>(null);
   const rightEarRef = useRef<SVGGElement | null>(null);
-  const tailRef = useRef<SVGPathElement | null>(null);
+  const tailRef = useRef<SVGGElement | null>(null);
   const mouseDeviceRef = useRef<SVGGElement | null>(null);
 
   const [leftPawPos, setLeftPawPos] = useState<{ x: number; y: number }>({ x: -44, y: 92 });
@@ -305,15 +327,36 @@ export function CatDeskScene({
   const petTimeout = useRef<number | null>(null);
   const keyTimestampsRef = useRef<number[]>([]);
   const earIndexRef = useRef(0);
-  const idleCycleRef = useRef(0);
+  const lastRandomIdleRef = useRef<Exclude<IdleState, "active"> | null>(null);
   const hasMovedMouseOnce = useRef(false);
   const groomTimersRef = useRef<number[]>([]);
   const isInitialMountRef = useRef(true);
+  const idleStateRef = useRef<IdleState>("active");
+  idleStateRef.current = idleState;
+  const isTypingRef = useRef(isTyping);
+  isTypingRef.current = isTyping;
+  const idleBagRef = useRef<Exclude<IdleState, "active">[]>([]);
 
   const clearGroomTimers = () => {
     groomTimersRef.current.forEach((id) => window.clearTimeout(id));
     groomTimersRef.current = [];
   };
+
+  useEffect(() => {
+    deskAudio.enabled = Boolean(settings.keySounds);
+  }, [settings.keySounds]);
+
+  // Sonido al pulsar tecla
+  useEffect(() => {
+    if (!settings.keySounds || keyTick === 0 || isSleeping) return;
+    deskAudio.playKeyTap(lastKeyCode === "Space");
+  }, [keyTick, lastKeyCode, settings.keySounds, isSleeping]);
+
+  // Sonido al hacer clic con el ratón
+  useEffect(() => {
+    if (!settings.keySounds || mouseClickTick === 0 || !activeMouseBtn || isSleeping) return;
+    deskAudio.playMouseClick(activeMouseBtn === "Right");
+  }, [mouseClickTick, activeMouseBtn, settings.keySounds, isSleeping]);
 
   // Si el usuario escribe o mueve el ratón en mitad del acicalamiento, cancela limpio
   useEffect(() => {
@@ -325,12 +368,13 @@ export function CatDeskScene({
     }
   }, [isTyping, activeMouseBtn, idleState]);
 
-  // 0. Respiración suave del torso
+  // 0. Respiración suave del torso (se pausa durante estiramiento aleatorio)
   useEffect(() => {
-    if (!torsoRef.current) return;
+    if (!torsoRef.current || idleState === "stretch") return;
     const breathAnim = animate(torsoRef.current, {
       scaleX: [1, 1.022, 1],
       scaleY: [1, 1.014, 1],
+      translateY: 0,
       duration: isSleeping ? 4000 : 3000,
       loop: true,
       ease: "inOutSine",
@@ -338,7 +382,7 @@ export function CatDeskScene({
     return () => {
       breathAnim.pause();
     };
-  }, [isSleeping]);
+  }, [isSleeping, idleState]);
 
   // Activa agarre del ratón al moverlo o hacer clic, y lo suelta tras 1.5s sin movimiento
   useEffect(() => {
@@ -366,7 +410,7 @@ export function CatDeskScene({
     }, 0);
   }, [lastMouseTs, keyTick]);
 
-  // Dormir tras 60s sin actividad de ratón ni teclado
+  // Dormir tras 60s sin actividad de ratón ni teclado (única animación persistente por tiempo fijo)
   useEffect(() => {
     const sleepTimer = window.setTimeout(() => {
       clearGroomTimers();
@@ -388,7 +432,9 @@ export function CatDeskScene({
     let bodyTilt = 0;
 
     if (!isSleeping) {
-      if (idleState === "groom" && groomPhase !== "return") {
+      if (idleState === "stretch") {
+        bodyTilt = -4;
+      } else if (idleState === "groom" && groomPhase !== "return") {
         bodyTilt = -2.5;
       } else if (holdingMouse && isTyping) {
         bodyTilt = strike.paw === "left" ? -4.5 : -3.5;
@@ -496,7 +542,7 @@ export function CatDeskScene({
       return;
     }
 
-    if (idleState === "lookAround") return;
+    if (idleState === "lookAround" || idleState === "curiousTilt") return;
 
     const dx = normMouse.x - 0.5;
     const dy = normMouse.y - 0.5;
@@ -575,8 +621,8 @@ export function CatDeskScene({
     let leftTargetY = 92;
 
     if (holdingMouse) {
-      leftTargetX = -109 + mx;
-      leftTargetY = 93 + my;
+      leftTargetX = -131 + mx;
+      leftTargetY = 95 + my;
     } else if (isTyping && strike.paw === "left") {
       leftTargetX = strike.x;
       leftTargetY = strike.y;
@@ -679,7 +725,7 @@ export function CatDeskScene({
   }, [isTyping, isMouseActive]);
 
   useEffect(() => {
-    if (!tailRef.current) return;
+    if (!tailRef.current || idleState === "tailFlick") return;
 
     const config = isSleeping
       ? { rotate: [-0.8, 1.4, -0.8], duration: 6200 }
@@ -699,102 +745,170 @@ export function CatDeskScene({
     return () => {
       anim.pause();
     };
-  }, [tailSpeedLevel, isSleeping]);
+  }, [tailSpeedLevel, isSleeping, idleState]);
 
-  // 6. Conductas autónomas en reposo breve (secuencia completa para acicalamiento)
+  // 6. Pool aleatorio de las 7 animaciones de reposo (baraja sin repetición)
   useEffect(() => {
     if (isSleeping) return;
-    const checkIdle = window.setInterval(() => {
-      const elapsed = Date.now() - lastActivityTs;
-      if (elapsed < 4000 || elapsed >= SLEEP_TIMEOUT_MS || idleState !== "active") {
-        return;
+    let loopTimer: number | null = null;
+    let resetTimer: number | null = null;
+
+    const drawNextIdle = (): Exclude<IdleState, "active"> => {
+      if (idleBagRef.current.length === 0) {
+        const shuffled = [...RANDOM_IDLE_POOL].sort(() => Math.random() - 0.5);
+        if (shuffled[0] === lastRandomIdleRef.current && shuffled.length > 1) {
+          [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+        }
+        idleBagRef.current = shuffled;
       }
+      const next = idleBagRef.current.pop()!;
+      lastRandomIdleRef.current = next;
+      return next;
+    };
 
-      const actions: IdleState[] = ["lookAround", "groom", "blink"];
-      const chosen = actions[idleCycleRef.current % actions.length];
-      idleCycleRef.current += 1;
-      setIdleState(chosen);
+    const scheduleNextRandomIdle = () => {
+      const randomDelay = 3200 + Math.floor(Math.random() * 3300); // 3.2s a 6.5s
+      loopTimer = window.setTimeout(() => {
+        const elapsed = Date.now() - lastActivityTs;
+        if (
+          elapsed >= 3000 &&
+          elapsed < SLEEP_TIMEOUT_MS &&
+          idleStateRef.current === "active" &&
+          !isTypingRef.current
+        ) {
+          const chosen = drawNextIdle();
+          setIdleState(chosen);
 
-      if (chosen === "lookAround") {
-        animate(gazeAnimObj.current, {
-          headRot: [-10, 10, 0],
-          leftPupilX: [-5, 5, 0],
-          rightPupilX: [-5, 5, 0],
-          duration: 2200,
-          ease: "inOutSine",
-          onUpdate: () => setGazeOffset({ ...gazeAnimObj.current }),
-        });
-        window.setTimeout(() => setIdleState("active"), 2300);
-        return;
-      }
+          if (chosen === "lookAround") {
+            animate(gazeAnimObj.current, {
+              headRot: [-13, 13, 0],
+              headX: [-5, 5, 0],
+              leftPupilX: [-5.5, 5.5, 0],
+              rightPupilX: [-5.5, 5.5, 0],
+              duration: 2100,
+              ease: "inOutSine",
+              onUpdate: () => setGazeOffset({ ...gazeAnimObj.current }),
+            });
+            resetTimer = window.setTimeout(() => setIdleState("active"), 2200);
+          } else if (chosen === "blink") {
+            resetTimer = window.setTimeout(() => setIdleState("active"), 550);
+          } else if (chosen === "earTwitch") {
+            if (leftEarRef.current) {
+              animate(leftEarRef.current, {
+                rotate: [0, -22, 6, -16, 0],
+                scaleY: [1, 0.86, 1],
+                duration: 620,
+                ease: "inOutSine",
+              });
+            }
+            if (rightEarRef.current) {
+              animate(rightEarRef.current, {
+                rotate: [0, 14, -4, 10, 0],
+                duration: 620,
+                ease: "inOutSine",
+              });
+            }
+            resetTimer = window.setTimeout(() => setIdleState("active"), 700);
+          } else if (chosen === "stretch") {
+            if (torsoRef.current) {
+              animate(torsoRef.current, {
+                scaleY: [1, 1.055, 1],
+                scaleX: [1, 0.975, 1],
+                translateY: [0, -4, 0],
+                duration: 1450,
+                ease: "inOutSine",
+              });
+            }
+            resetTimer = window.setTimeout(() => setIdleState("active"), 1550);
+          } else if (chosen === "curiousTilt") {
+            animate(gazeAnimObj.current, {
+              headRot: [0, 15, 15, 0],
+              headY: [0, -3, -3, 0],
+              irisY: [0, -2.5, -2.5, 0],
+              pupilY: [0, -4, -4, 0],
+              pupilScale: [1, 1.22, 1.22, 1],
+              duration: 1700,
+              ease: "inOutSine",
+              onUpdate: () => setGazeOffset({ ...gazeAnimObj.current }),
+            });
+            resetTimer = window.setTimeout(() => setIdleState("active"), 1800);
+          } else if (chosen === "tailFlick") {
+            if (tailRef.current) {
+              animate(tailRef.current, {
+                rotate: [0, 24, -12, 16, 0],
+                duration: 850,
+                ease: "outBack(1.6)",
+              });
+            }
+            resetTimer = window.setTimeout(() => setIdleState("active"), 950);
+          } else if (chosen === "groom") {
+            clearGroomTimers();
+            setGroomPhase("bow");
 
-      if (chosen === "blink") {
-        window.setTimeout(() => setIdleState("active"), 550);
-        return;
-      }
+            const t1 = window.setTimeout(() => {
+              animate(rightPawAnimObj.current, {
+                x: -12,
+                y: -13,
+                duration: 360,
+                ease: "outQuad",
+                onUpdate: () => {
+                  setRightPawPos({ x: rightPawAnimObj.current.x, y: rightPawAnimObj.current.y });
+                },
+              });
+            }, 220);
 
-      if (chosen === "groom") {
-        clearGroomTimers();
-        setGroomPhase("bow");
+            const t2 = window.setTimeout(() => {
+              setGroomPhase("lick");
+              setTongueOut(true);
+              animate(rightPawAnimObj.current, {
+                y: [-13, -17, -12, -17, -13],
+                duration: 1150,
+                ease: "inOutSine",
+                onUpdate: () => {
+                  setRightPawPos({ x: rightPawAnimObj.current.x, y: rightPawAnimObj.current.y });
+                },
+              });
+            }, 580);
 
-        const t1 = window.setTimeout(() => {
-          animate(rightPawAnimObj.current, {
-            x: -12,
-            y: -13,
-            duration: 360,
-            ease: "outQuad",
-            onUpdate: () => {
-              setRightPawPos({ x: rightPawAnimObj.current.x, y: rightPawAnimObj.current.y });
-            },
-          });
-        }, 220);
+            const t3 = window.setTimeout(() => setTongueOut(false), 880);
+            const t4 = window.setTimeout(() => setTongueOut(true), 1040);
+            const t5 = window.setTimeout(() => setTongueOut(false), 1340);
+            const t6 = window.setTimeout(() => setTongueOut(true), 1480);
 
-        const t2 = window.setTimeout(() => {
-          setGroomPhase("lick");
-          setTongueOut(true);
-          animate(rightPawAnimObj.current, {
-            y: [-13, -17, -12, -17, -13],
-            duration: 1150,
-            ease: "inOutSine",
-            onUpdate: () => {
-              setRightPawPos({ x: rightPawAnimObj.current.x, y: rightPawAnimObj.current.y });
-            },
-          });
-        }, 580);
+            const t7 = window.setTimeout(() => {
+              setTongueOut(false);
+              animate(rightPawAnimObj.current, {
+                x: 28,
+                y: 92,
+                duration: 420,
+                ease: "outQuad",
+                onUpdate: () => {
+                  setRightPawPos({ x: rightPawAnimObj.current.x, y: rightPawAnimObj.current.y });
+                },
+              });
+            }, 1760);
 
-        const t3 = window.setTimeout(() => setTongueOut(false), 880);
-        const t4 = window.setTimeout(() => setTongueOut(true), 1040);
-        const t5 = window.setTimeout(() => setTongueOut(false), 1340);
-        const t6 = window.setTimeout(() => setTongueOut(true), 1480);
+            const t8 = window.setTimeout(() => {
+              setGroomPhase("return");
+            }, 2160);
 
-        const t7 = window.setTimeout(() => {
-          setTongueOut(false);
-          animate(rightPawAnimObj.current, {
-            x: 28,
-            y: 92,
-            duration: 420,
-            ease: "outQuad",
-            onUpdate: () => {
-              setRightPawPos({ x: rightPawAnimObj.current.x, y: rightPawAnimObj.current.y });
-            },
-          });
-        }, 1760);
+            const t9 = window.setTimeout(() => {
+              setGroomPhase("none");
+              setIdleState("active");
+            }, 2580);
 
-        const t8 = window.setTimeout(() => {
-          setGroomPhase("return");
-        }, 2160);
+            groomTimersRef.current = [t1, t2, t3, t4, t5, t6, t7, t8, t9];
+          }
+        }
+        scheduleNextRandomIdle();
+      }, randomDelay);
+    };
 
-        const t9 = window.setTimeout(() => {
-          setGroomPhase("none");
-          setIdleState("active");
-        }, 2580);
-
-        groomTimersRef.current = [t1, t2, t3, t4, t5, t6, t7, t8, t9];
-      }
-    }, 4500);
+    scheduleNextRandomIdle();
 
     return () => {
-      window.clearInterval(checkIdle);
+      if (loopTimer) window.clearTimeout(loopTimer);
+      if (resetTimer) window.clearTimeout(resetTimer);
       clearGroomTimers();
     };
   }, [lastActivityTs, isSleeping]);
@@ -823,6 +937,7 @@ export function CatDeskScene({
   const isGrooming = !isSleeping && idleState === "groom" && !isTyping;
   const eyesClosed = !isSleeping && (isHeadHovered || isPetting || idleState === "blink");
   const activeStrike = isTyping && !isSleeping ? getKeyStrikeTarget(lastKeyCode) : null;
+  const isSpacePressed = activeStrike !== null && lastKeyCode === "Space";
 
   const kbSideColor = isDarkKb ? "#141417" : "#1c1c20";
   const kbTopColor = isDarkKb ? "#27272d" : "#2e2e33";
@@ -862,10 +977,18 @@ export function CatDeskScene({
   );
 
   const softShadowOpacity = settings.catCoat === "black" ? "0.42" : "0.22";
+  const svgWidth = Math.round(338 * avatarScale);
+  const svgHeight = Math.round(308 * avatarScale);
 
   return (
-    <div class="pointer-events-none relative w-full max-w-[540px] flex flex-col items-center justify-center select-none">
-      <svg viewBox="-200 -145 410 325" class="pointer-events-none w-full h-auto overflow-visible">
+    <div
+      style={{ width: `${svgWidth}px`, height: `${svgHeight}px` }}
+      class="pointer-events-none relative flex items-center justify-center select-none transition-all duration-150"
+    >
+      <svg
+        viewBox="-162 -115 302 275"
+        class="pointer-events-none h-full w-full overflow-visible"
+      >
         <defs>
           <filter id="softFurShadow" x="-30%" y="-30%" width="160%" height="160%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="5.5" />
@@ -915,7 +1038,7 @@ export function CatDeskScene({
           </filter>
         </defs>
 
-        {/* Grupo interactivo del personaje (único elemento que captura arrastre en el DOM) */}
+        {/* Grupo interactivo del personaje */}
         <g data-cat-interactive="true" class="pointer-events-auto cursor-grab active:cursor-grabbing">
           {/* 1. COLA CURVA CON PUNTA CALICÓ */}
           <g ref={tailRef} style={{ transformOrigin: "44px 52px" }}>
@@ -957,16 +1080,15 @@ export function CatDeskScene({
               stroke={c.hindOutline}
               stroke-width="1.8"
             />
-            {/* Sombras suaves bajo las patas traseras */}
             <g filter="url(#softFurShadow)" opacity="0.28" pointer-events-none>
               <ellipse cx="-46" cy="87" rx="16" ry="5.5" fill={c.shade} />
               <ellipse cx="24" cy="87" rx="16" ry="5.5" fill={c.shade} />
             </g>
           </g>
 
-          {/* 3. RATÓN COMPACTO A LA IZQUIERDA */}
+          {/* 3. RATÓN COMPACTO A LA IZQUIERDA (invertido arriba/abajo para coherencia con el gato, sin cambiar de pata) */}
           <g ref={mouseDeviceRef}>
-            <g transform="translate(-112, 102) rotate(-12)">
+            <g transform="translate(-134, 104) rotate(168)">
               <ellipse
                 cx="0"
                 cy="0"
@@ -977,10 +1099,10 @@ export function CatDeskScene({
                 stroke-width="2.2"
               />
               {activeMouseBtn === "Left" && (
-                <path d="M -14 -2 C -14 -14, -2 -20, 0 -20 L 0 -2 Z" fill="#22d3ee" />
+                <path d="M 14 -2 C 14 -14, 2 -20, 0 -20 L 0 -2 Z" fill="#22d3ee" />
               )}
               {activeMouseBtn === "Right" && (
-                <path d="M 14 -2 C 14 -14, 2 -20, 0 -20 L 0 -2 Z" fill="#22d3ee" />
+                <path d="M -14 -2 C -14 -14, -2 -20, 0 -20 L 0 -2 Z" fill="#22d3ee" />
               )}
               <rect x="-1.8" y="-13" width="3.6" height="7" rx="1.8" fill="#f59e0b" />
               <line x1="0" y1="-20" x2="0" y2="-2" stroke="#18181b" stroke-width="1.5" />
@@ -1006,7 +1128,7 @@ export function CatDeskScene({
               stroke-linejoin="round"
             />
 
-            {/* Fila 1 */}
+            {/* Fila 1 (incluye barra espaciadora completa de x=-38, width=92) */}
             <g transform="translate(0, -16)">
               <rect x="-96" y="-3" width="14" height="8" rx="2" fill={keyAltSide} />
               <rect x="-96" y="-4.5" width="14" height="7.5" rx="2" fill={keyAltTop} />
@@ -1078,13 +1200,13 @@ export function CatDeskScene({
               })}
             </g>
 
-            {/* Tecla iluminada en ámbar cálido al ser pulsada */}
+            {/* Tecla iluminada al ser pulsada (barra espaciadora completa cuando es Space) */}
             {activeStrike && (
               <rect
-                x={activeStrike.x - 15}
-                y={activeStrike.y - 118.5}
-                width={lastKeyCode === "Space" ? "60" : "15"}
-                height="8"
+                x={isSpacePressed ? -38 : activeStrike.x - 15}
+                y={isSpacePressed ? -20.5 : activeStrike.y - 118.5}
+                width={isSpacePressed ? 92 : 15}
+                height={isSpacePressed ? 7.5 : 8}
                 rx="2"
                 fill="#f3d5a5"
                 opacity="0.95"
@@ -1092,7 +1214,7 @@ export function CatDeskScene({
             )}
           </g>
 
-          {/* 5. GRUPO PIVOTE SUPERIOR (Dorso felino anatómico + Brazos + Cabeza) */}
+          {/* 5. GRUPO PIVOTE SUPERIOR */}
           <g ref={upperBodyPivotRef} style={{ transformOrigin: "-12px 76px" }}>
             <g ref={torsoRef} style={{ transformOrigin: "-12px 76px" }}>
               <path
@@ -1106,7 +1228,6 @@ export function CatDeskScene({
                 fill={c.body}
               />
 
-              {/* Sombra difusa suave bajo el cuello y barbilla */}
               <ellipse
                 cx="-14"
                 cy="-22"
@@ -1150,7 +1271,6 @@ export function CatDeskScene({
               )}
             </g>
 
-            {/* Sombras suaves bajo codos/rodillas delanteras */}
             <g filter="url(#softFurShadow)" opacity={softShadowOpacity} pointer-events-none>
               <ellipse cx={leftElbow.x} cy={leftElbow.y + 8} rx="11" ry="6" fill={c.shade} />
               <ellipse cx={rightElbow.x} cy={rightElbow.y + 8} rx="11" ry="6" fill={c.shade} />
@@ -1200,7 +1320,7 @@ export function CatDeskScene({
               />
             </g>
 
-            {/* Cabeza (se dibuja antes que el brazo derecho para que la pata quede por delante al acicalarse) */}
+            {/* Cabeza */}
             <g
               ref={headRef}
               transform={`translate(${gazeOffset.headX.toFixed(2)}, ${gazeOffset.headY.toFixed(2)}) rotate(${gazeOffset.headRot.toFixed(2)} -14 -44)`}
@@ -1208,22 +1328,18 @@ export function CatDeskScene({
               onMouseMove={handleHeadMouseMove}
               onMouseLeave={handleHeadMouseLeave}
             >
-              {/* Oreja izquierda */}
               <g ref={leftEarRef} style={{ transformOrigin: "-42px -74px" }}>
                 <path d="M -54 -62 Q -58 -96 -45 -100 Q -32 -96 -26 -74 Z" fill={c.earLeft} />
                 <path d="M -49 -66 Q -51 -88 -44 -90 Q -35 -88 -31 -74 Z" fill={c.earInner} />
               </g>
 
-              {/* Oreja derecha */}
               <g ref={rightEarRef} style={{ transformOrigin: "12px -78px" }}>
                 <path d="M -2 -76 Q 7 -106 20 -106 Q 30 -98 25 -66 Z" fill={c.earRight} />
                 <path d="M 3 -76 Q 9 -96 18 -96 Q 25 -90 21 -68 Z" fill={c.earInner} />
               </g>
 
-              {/* Cráneo */}
               <ellipse cx="-15" cy="-54" rx="44" ry="35" transform="rotate(-4 -15 -54)" fill={c.body} />
 
-              {/* Manchas faciales */}
               {settings.catCoat === "calico" && (
                 <>
                   <path
@@ -1253,7 +1369,7 @@ export function CatDeskScene({
                     cy="-45"
                     rx="26"
                     ry="18"
-                    fill={`url(#muzzleCircle-${settings.catCoat})`}
+                    fill={`url(#siameseMuzzle-${settings.catCoat})`}
                     pointer-events-none
                   />
                 )}
@@ -1275,7 +1391,6 @@ export function CatDeskScene({
                   </g>
                 )}
 
-                {/* Ojos */}
                 {isSleeping || isGrooming ? (
                   <g
                     stroke={isGrooming ? c.eyeIris : "#18181b"}
@@ -1320,7 +1435,6 @@ export function CatDeskScene({
                   </>
                 )}
 
-                {/* Bigotes */}
                 <g stroke={c.whisker} stroke-width="1.2" stroke-linecap="round" opacity="0.85">
                   <line x1="-38" y1="-42" x2="-56" y2="-40" />
                   <line x1="-37" y1="-37" x2="-55" y2="-32" />
@@ -1330,7 +1444,6 @@ export function CatDeskScene({
                   <line x1="10" y1="-35" x2="27" y2="-32" />
                 </g>
 
-                {/* Boca */}
                 {isPetting && !isSleeping ? (
                   <path
                     d="M -21 -36 Q -16 -29 -12 -35 Q -8 -29 -3 -36"
@@ -1343,7 +1456,6 @@ export function CatDeskScene({
                   <ellipse cx="-14" cy="-34" rx="3.5" ry="4.5" fill="#fb7185" />
                 ) : null}
 
-                {/* Lengüita con ajuste vertical fino en faceRef */}
                 {isGrooming && tongueOut && (
                   <g transform="translate(-14, -34) rotate(-14)">
                     <ellipse cx="0" cy="0" rx="3.8" ry="6.2" fill="#f47296" />
@@ -1362,7 +1474,7 @@ export function CatDeskScene({
               </g>
             </g>
 
-            {/* Brazo derecho (renderizado encima de la cabeza para que la pata se apoye visualmente frente al hocico) */}
+            {/* Brazo derecho */}
             <g>
               <path
                 d={rightLimb.armPath}
@@ -1408,7 +1520,7 @@ export function CatDeskScene({
           </g>
         </g>
 
-        {/* 6. COLA DE TECLAS FLOTANTES EN EL AIRE (sin capturar ratón) */}
+        {/* 6. COLA DE TECLAS FLOTANTES EN EL AIRE */}
         {floatingKeys.map((fk, idx) => {
           const isOldest = idx < floatingKeys.length - 1;
           return (
