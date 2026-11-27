@@ -2,14 +2,12 @@ name: Auto Version Bump
 
 on:
   push:
-    tags:
-      - "v*"
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag (e.g. v0.1.4)"
-        required: true
-        type: string
+    branches:
+      - main
+
+concurrency:
+  group: auto-version-bump-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -26,25 +24,61 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Fetch existing tags
+        run: git fetch --tags --force origin
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Bump patch version in package.json, tauri.conf.json, and Cargo.toml
+      - name: Compute next available patch version
         id: bump
         shell: bash
         run: |
           bun -e '
             const fs = require("fs");
+            const { execSync } = require("child_process");
 
             const pkgPath = "package.json";
-            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-            const current = pkg.version || "0.1.0";
-            const parts = current.split(".").map(Number);
-            if (parts.length !== 3 || parts.some(Number.isNaN)) {
-              throw new Error(`Invalid semver in package.json: ${current}`);
+            if (!fs.existsSync(pkgPath)) {
+              throw new Error("Missing package.json");
             }
-            parts[2] += 1;
-            const next = parts.join(".");
+
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+            const current = String(pkg.version || "0.1.1").trim();
+            const match = current.match(/^(\d+)\.(\d+)\.(\d+)$/);
+            if (!match) {
+              throw new Error(`Invalid semver in package.json: "${current}"`);
+            }
+
+            const major = Number(match[1]);
+            const minor = Number(match[2]);
+            let patch = Number(match[3]) + 1;
+            let next = `${major}.${minor}.${patch}`;
+
+            const tagExists = (ver) => {
+              const tag = `v${ver}`;
+              try {
+                execSync(`git rev-parse -q --verify "refs/tags/${tag}"`, { stdio: "ignore" });
+                return true;
+              } catch {}
+              try {
+                const remoteOut = execSync(`git ls-remote --tags origin "refs/tags/${tag}"`, {
+                  encoding: "utf8",
+                }).trim();
+                return remoteOut.length > 0;
+              } catch {
+                return false;
+              }
+            };
+
+            while (tagExists(next)) {
+              patch += 1;
+              next = `${major}.${minor}.${patch}`;
+            }
+
+            if (!/^\d+\.\d+\.\d+$/.test(next)) {
+              throw new Error(`Invalid next version: "${next}"`);
+            }
 
             pkg.version = next;
             fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
@@ -67,28 +101,56 @@ jobs:
             }
 
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `new_version=${next}\n`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag_name=v${next}\n`);
           '
 
-      - name: Commit version bump and push tag
+      - name: Commit version bump, push main, and push tag
         id: git_push
         shell: bash
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          TAG_NAME: ${{ steps.bump.outputs.tag_name }}
         run: |
-          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
-          TAG_NAME="v${NEW_VERSION}"
+          if [[ ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || -z "$TAG_NAME" || "$TAG_NAME" == "v" ]]; then
+            echo "ERROR: Invalid version/tag: version='$NEW_VERSION' tag='$TAG_NAME'" >&2
+            exit 1
+          fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
-          git commit -m "chore(release): bump version to ${TAG_NAME} [skip ci]"
-          git tag -a "${TAG_NAME}" -m "Release ${TAG_NAME}"
+          git add package.json
+          [[ -f src-tauri/tauri.conf.json ]] && git add src-tauri/tauri.conf.json
+          [[ -f src-tauri/Cargo.toml ]] && git add src-tauri/Cargo.toml
 
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git commit -m "chore(release): bump version to ${TAG_NAME} [skip ci]"
+
+          pushed=0
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              pushed=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ "$pushed" -ne 1 ]]; then
+            echo "ERROR: Failed to push bumped version to main after retries." >&2
+            exit 1
+          fi
+
+          git tag -a "${TAG_NAME}" -m "Release ${TAG_NAME}"
           git push origin "${TAG_NAME}"
 
       - name: Trigger Release workflow for new tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: v${{ steps.bump.outputs.new_version }}
-        run: gh workflow run release.yml --ref main -f tag="${TAG_NAME}"
+          TAG_NAME: ${{ steps.bump.outputs.tag_name }}
+        run: |
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Refusing to trigger release for TAG_NAME='$TAG_NAME'." >&2
+            exit 1
+          fi
+          gh workflow run release.yml --ref main -f tag="${TAG_NAME}"
