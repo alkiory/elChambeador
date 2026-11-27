@@ -1,0 +1,2290 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>el Chambeador — El compañero de escritorio que sí chambea contigo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* =========================================================================
+       1. DESIGN TOKENS ("SUNRISE DRIFT" OVER #faf8f2)
+       ========================================================================= */
+    :root {
+      --bg-base: #faf8f2;
+      --surface-card: rgba(255, 255, 255, 0.88);
+      --surface-card-strong: rgba(255, 255, 255, 0.96);
+      --surface-subtle: rgba(24, 24, 27, 0.06);
+
+      --ink-primary: #141417;
+      --ink-secondary: #27272a;
+      --ink-muted: #3f3f46;
+      --ink-on-accent: #ffffff;
+
+      --accent-amber: #b45309;
+      --accent-amber-hover: #92400e;
+      --accent-amber-soft: rgba(180, 83, 9, 0.14);
+      --accent-sage: #166534;
+      --accent-sage-soft: rgba(22, 101, 52, 0.13);
+
+      --border-hairline: rgba(24, 24, 27, 0.16);
+      --border-strong: rgba(24, 24, 27, 0.28);
+
+      --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+      --text-xs: clamp(0.76rem, 0.72rem + 0.15vw, 0.85rem);
+      --text-sm: clamp(0.9rem, 0.86rem + 0.18vw, 1rem);
+      --text-base: clamp(1rem, 0.97rem + 0.18vw, 1.1rem);
+      --text-lg: clamp(1.14rem, 1.05rem + 0.35vw, 1.34rem);
+      --text-xl: clamp(1.52rem, 1.24rem + 1.15vw, 2.22rem);
+      --text-2xl: clamp(1.98rem, 1.5rem + 1.85vw, 2.95rem);
+      --text-hero: clamp(2.55rem, 1.75rem + 3.2vw, 4.35rem);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+      --radius-pill: 999px;
+
+      --shadow-card: 0 14px 36px -22px rgba(24, 24, 27, 0.24);
+      --shadow-float: 0 12px 26px -12px rgba(180, 83, 9, 0.38);
+
+      --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-spring: cubic-bezier(0.34, 1.48, 0.64, 1);
+      --t-fast: 160ms;
+      --t-med: 300ms;
+      --t-slow: 460ms;
+    }
+
+    /* =========================================================================
+       2. RESET & BASE STYLES
+       ========================================================================= */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      background-color: #faf8f2;
+      color: var(--ink-primary);
+      font-family: var(--font-sans);
+      font-size: var(--text-base);
+      line-height: 1.62;
+      overflow-x: hidden;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    p,
+    ul,
+    ol,
+    figure,
+    blockquote {
+      margin: 0;
+    }
+
+    ul,
+    ol {
+      padding: 0;
+      list-style: none;
+    }
+
+    button,
+    input {
+      font-family: var(--font-sans);
+      color: inherit;
+    }
+
+    button {
+      background: none;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    svg {
+      display: block;
+      max-width: 100%;
+    }
+
+    :focus-visible {
+      outline: 2.5px solid var(--accent-amber);
+      outline-offset: 3px;
+    }
+
+    /* =========================================================================
+       3. "SUNRISE DRIFT" AURA BACKGROUND OVER #faf8f2
+       ========================================================================= */
+    .aura-bg {
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+    }
+
+    .aura-layer-1 {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(0, 0, 0, 0) 0%,
+          rgba(0, 138, 255, 0.1) 30%,
+          rgb(255, 255, 255) 20%,
+          rgb(247, 164, 66) 70%,
+          rgb(233, 66, 247) 100%);
+      mix-blend-mode: multiply;
+      filter: blur(75px);
+      transform: translateZ(0);
+      will-change: transform;
+      pointer-events: none;
+    }
+
+    .aura-layer-2 {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(0, 0, 0, 0) 0%,
+          rgba(0, 138, 255, 0.2) 35%,
+          rgb(255, 255, 255) 70%,
+          rgb(247, 164, 66) 80%,
+          rgb(233, 66, 247) 100%);
+      mix-blend-mode: multiply;
+      filter: blur(125px);
+      transform: translateZ(0);
+      will-change: transform;
+      pointer-events: none;
+    }
+
+    @media (min-width: 900px) {
+      .aura-layer-1 {
+        filter: blur(108px);
+      }
+
+      .aura-layer-2 {
+        filter: blur(180px);
+      }
+    }
+
+    .aura-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* =========================================================================
+       4. LAYOUT & COMPONENTS
+       ========================================================================= */
+    .container {
+      width: min(1160px, 100% - 2rem);
+      margin-inline: auto;
+    }
+
+    @media (min-width: 640px) {
+      .container {
+        width: min(1160px, 100% - 3.5rem);
+      }
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      background: rgba(250, 248, 242, 0.86);
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 66px;
+    }
+
+    .brand-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 800;
+      font-size: var(--text-base);
+      letter-spacing: -0.02em;
+      color: var(--ink-primary);
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      background: var(--accent-amber-soft);
+      color: var(--accent-amber);
+      border: 1px solid rgba(180, 83, 9, 0.28);
+    }
+
+    .nav-links {
+      display: none;
+      align-items: center;
+      gap: 1.5rem;
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--ink-secondary);
+    }
+
+    @media (min-width: 860px) {
+      .nav-links {
+        display: flex;
+      }
+    }
+
+    .nav-links a:hover,
+    .nav-links a:focus-visible {
+      color: var(--accent-amber);
+    }
+
+    .header-cta {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      min-height: 44px;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      transition:
+        transform var(--t-fast) var(--ease-spring),
+        background-color var(--t-fast) var(--ease-smooth),
+        border-color var(--t-fast) var(--ease-smooth),
+        color var(--t-fast) var(--ease-smooth);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--accent-amber);
+      color: var(--ink-on-accent);
+      box-shadow: var(--shadow-float);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-amber-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--surface-card-strong);
+      color: var(--ink-primary);
+      border: 1.5px solid var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+      transform: translateY(-2px);
+    }
+
+    /* Hero with Open Cat (No Box or Frame Around Cat) */
+    .hero-section {
+      padding-block: clamp(2.2rem, 5vw, 4.4rem) clamp(3.2rem, 6vw, 5.2rem);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: clamp(2rem, 4.5vw, 3.5rem);
+      align-items: center;
+    }
+
+    @media (min-width: 960px) {
+      .hero-grid {
+        grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+      }
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--accent-sage);
+      background: var(--surface-card-strong);
+      border: 1px solid rgba(22, 101, 52, 0.28);
+      padding: 0.34rem 0.85rem;
+      border-radius: var(--radius-pill);
+      margin-bottom: 1.15rem;
+      box-shadow: var(--shadow-card);
+    }
+
+    .hero-title {
+      font-size: var(--text-hero);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      color: var(--ink-primary);
+      margin-bottom: 1.15rem;
+    }
+
+    .hero-title span {
+      color: var(--accent-amber);
+    }
+
+    .hero-lead {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--ink-primary);
+      margin-bottom: 0.7rem;
+      max-width: 48ch;
+    }
+
+    .hero-desc {
+      color: var(--ink-secondary);
+      max-width: 52ch;
+      margin-bottom: 1.75rem;
+    }
+
+    .cta-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.35rem;
+    }
+
+    .hero-audience-note {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--ink-primary);
+      background: var(--surface-card);
+      padding: 0.7rem 0.95rem;
+      border-radius: var(--radius-sm);
+      border-left: 3.5px solid var(--accent-amber);
+      max-width: 48ch;
+    }
+
+    /* Open Cat Stage & Centered Coat Swatches */
+    .open-cat-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-block: 0.5rem;
+    }
+
+    .cat-open-canvas {
+      position: relative;
+      width: min(100%, 440px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .pet-bubble {
+      position: absolute;
+      top: 6px;
+      right: 12px;
+      background: var(--surface-card-strong);
+      color: var(--ink-primary);
+      border: 1px solid var(--border-strong);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      padding: 0.3rem 0.75rem;
+      border-radius: var(--radius-pill);
+      box-shadow: var(--shadow-card);
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      transition: opacity var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-spring);
+    }
+
+    .pet-bubble.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .coat-dock {
+      margin-top: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.55rem;
+      width: 100%;
+    }
+
+    .coat-dock-label {
+      font-size: var(--text-xs);
+      font-weight: 800;
+      color: var(--ink-primary);
+      text-align: center;
+      background: var(--surface-card);
+      padding: 0.22rem 0.75rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-hairline);
+    }
+
+    .coat-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.45rem;
+    }
+
+    .coat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.42rem;
+      min-height: 36px;
+      padding: 0.3rem 0.8rem;
+      border-radius: var(--radius-pill);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      background: var(--surface-card-strong);
+      border: 1px solid var(--border-hairline);
+      color: var(--ink-primary);
+      box-shadow: var(--shadow-card);
+      transition:
+        transform var(--t-fast) var(--ease-spring),
+        background-color var(--t-fast) var(--ease-smooth),
+        color var(--t-fast) var(--ease-smooth),
+        border-color var(--t-fast) var(--ease-smooth);
+    }
+
+    .coat-pill:hover {
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+      transform: translateY(-2px);
+    }
+
+    .coat-pill[aria-checked="true"] {
+      background: var(--ink-primary);
+      color: #ffffff;
+      border-color: var(--ink-primary);
+    }
+
+    .coat-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      flex-shrink: 0;
+    }
+
+    /* Sections */
+    .section {
+      padding-block: clamp(3.2rem, 6.2vw, 5.2rem);
+      border-top: 1px solid var(--border-hairline);
+    }
+
+    .section-eyebrow {
+      font-size: var(--text-xs);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-amber);
+      margin-bottom: 0.45rem;
+    }
+
+    .section-title {
+      font-size: var(--text-2xl);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      color: var(--ink-primary);
+      margin-bottom: 0.65rem;
+    }
+
+    .section-lead {
+      color: var(--ink-primary);
+      font-weight: 500;
+      max-width: 60ch;
+      background: var(--surface-card);
+      padding: 0.55rem 0.9rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-hairline);
+    }
+
+    /* Feature Cards with Creative Hover Animations */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.15rem;
+      margin-top: 2rem;
+    }
+
+    @media (min-width: 680px) {
+      .cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .cards-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .feature-tile {
+      position: relative;
+      overflow: hidden;
+      background: var(--surface-card-strong);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      padding: 1.4rem;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      transition: transform var(--t-med) var(--ease-spring), border-color var(--t-fast) var(--ease-smooth);
+    }
+
+    .feature-tile:hover,
+    .feature-tile:focus-within {
+      transform: translateY(-4px);
+      border-color: var(--accent-amber);
+    }
+
+    .feature-tile h3 {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--ink-primary);
+    }
+
+    .feature-tile p {
+      font-size: var(--text-sm);
+      color: var(--ink-secondary);
+    }
+
+    /* Creative Hover 1: Peeking cat paw */
+    .peeking-paw {
+      position: absolute;
+      top: -22px;
+      right: 16px;
+      width: 44px;
+      height: 54px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-16px) rotate(-14deg);
+      transition: transform var(--t-med) var(--ease-spring), opacity var(--t-fast) var(--ease-smooth);
+    }
+
+    .feature-tile--paw:hover .peeking-paw,
+    .feature-tile--paw:focus-within .peeking-paw {
+      opacity: 1;
+      transform: translateY(16px) rotate(5deg);
+    }
+
+    /* Creative Hover 2: Rolling yarn ball */
+    .rolling-yarn {
+      position: absolute;
+      bottom: 12px;
+      right: 14px;
+      width: 44px;
+      height: 44px;
+      pointer-events: none;
+      opacity: 0.85;
+      transition: transform var(--t-slow) var(--ease-spring), opacity var(--t-fast) var(--ease-smooth);
+    }
+
+    .feature-tile--yarn:hover .rolling-yarn,
+    .feature-tile--yarn:focus-within .rolling-yarn {
+      opacity: 1;
+      transform: translateX(-14px) rotate(150deg);
+    }
+
+    /* Creative Hover 3: Nap tag with drifting Zzz */
+    .nap-tag {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--accent-sage);
+      background: var(--accent-sage-soft);
+      padding: 0.24rem 0.65rem;
+      border-radius: var(--radius-pill);
+    }
+
+    .nap-zzz {
+      display: inline-block;
+      transition: transform var(--t-med) var(--ease-spring), color var(--t-fast) var(--ease-smooth);
+    }
+
+    .feature-tile--nap:hover .nap-zzz,
+    .feature-tile--nap:focus-within .nap-zzz {
+      transform: translate(3px, -3px) scale(1.14);
+      color: var(--accent-amber);
+    }
+
+    /* Creative Hover 4: Keycap bounce */
+    .key-badge {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      background: var(--surface-card-strong);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 0.24rem 0.65rem;
+      box-shadow: 0 2px 0 var(--border-strong);
+      transition: transform var(--t-fast) var(--ease-spring), box-shadow var(--t-fast) var(--ease-smooth);
+    }
+
+    .feature-tile--coats:hover .key-badge,
+    .feature-tile--coats:focus-within .key-badge {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 0 var(--accent-amber);
+    }
+
+    /* Marketing & Audience Section */
+    .pitch-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+      margin-top: 1.9rem;
+    }
+
+    @media (min-width: 880px) {
+      .pitch-layout {
+        grid-template-columns: 1.2fr 0.8fr;
+      }
+    }
+
+    .pitch-card {
+      background: var(--surface-card-strong);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-xl);
+      padding: clamp(1.45rem, 3vw, 2.2rem);
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.35rem;
+    }
+
+    .pitch-headline {
+      font-size: var(--text-xl);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.18;
+      color: var(--ink-primary);
+    }
+
+    .pitch-headline span {
+      color: var(--accent-amber);
+    }
+
+    .audience-stack {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .audience-card {
+      background: var(--surface-card-strong);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      padding: 1.3rem;
+      box-shadow: var(--shadow-card);
+    }
+
+    .audience-card h3 {
+      font-size: var(--text-base);
+      font-weight: 800;
+      color: var(--accent-sage);
+      margin-bottom: 0.35rem;
+    }
+
+    .audience-card p {
+      font-size: var(--text-sm);
+      color: var(--ink-secondary);
+    }
+
+    /* FAQ Accordion with Smooth CSS Grid-Row Animation */
+    .faq-stack {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 2rem;
+      max-width: 860px;
+    }
+
+    .faq-item {
+      background: var(--surface-card-strong);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .faq-trigger {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.1rem 1.35rem;
+      text-align: left;
+      font-size: var(--text-base);
+      font-weight: 700;
+      color: var(--ink-primary);
+    }
+
+    .faq-trigger:hover {
+      background: var(--surface-subtle);
+    }
+
+    .faq-sign {
+      flex-shrink: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-amber);
+      transition: transform var(--t-med) var(--ease-spring);
+    }
+
+    .faq-trigger[aria-expanded="true"] .faq-sign {
+      transform: rotate(45deg);
+    }
+
+    .faq-collapse {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows var(--t-med) var(--ease-smooth);
+    }
+
+    .faq-item.is-open .faq-collapse {
+      grid-template-rows: 1fr;
+    }
+
+    .faq-collapse-inner {
+      overflow: hidden;
+    }
+
+    .faq-body {
+      padding: 0 1.35rem 1.2rem;
+      font-size: var(--text-sm);
+      color: var(--ink-primary);
+    }
+
+    /* Project Evolution & Support Section */
+    .support-band {
+      background: var(--surface-card-strong);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-xl);
+      padding: clamp(1.5rem, 3vw, 2.25rem);
+      box-shadow: var(--shadow-card);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    @media (min-width: 860px) {
+      .support-band {
+        grid-template-columns: 1.4fr auto;
+      }
+    }
+
+    .evolution-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .evolution-chip {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      padding: 0.28rem 0.72rem;
+      border-radius: var(--radius-pill);
+      background: var(--accent-amber-soft);
+      color: var(--accent-amber);
+    }
+
+    /* High-Contrast Footer */
+    .site-footer {
+      padding-block: 2.2rem 3rem;
+      background: var(--surface-card-strong);
+      border-top: 1px solid var(--border-strong);
+    }
+
+    .footer-row {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    @media (min-width: 780px) {
+      .footer-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .footer-nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--ink-primary);
+    }
+
+    .footer-nav button:hover,
+    .footer-nav a:hover {
+      color: var(--accent-amber);
+    }
+
+    /* Modal Dialog */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(20, 20, 23, 0.58);
+      backdrop-filter: blur(5px);
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+
+    .modal-backdrop[hidden] {
+      display: none;
+    }
+
+    .modal-card {
+      width: min(540px, 100%);
+      max-height: 86vh;
+      overflow-y: auto;
+      background: #faf8f2;
+      color: var(--ink-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      box-shadow: 0 24px 60px -20px rgba(20, 20, 23, 0.45);
+    }
+
+    .modal-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .modal-title {
+      font-size: var(--text-xl);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-hairline);
+      font-size: 1.25rem;
+      display: grid;
+      place-items: center;
+      color: var(--ink-secondary);
+    }
+
+    .modal-close:hover {
+      background: var(--surface-subtle);
+      color: var(--ink-primary);
+    }
+
+    .modal-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      font-size: var(--text-sm);
+      color: var(--ink-secondary);
+    }
+
+    .os-choices {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.65rem;
+    }
+
+    @media (min-width: 480px) {
+      .os-choices {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .os-option {
+      background: var(--surface-card-strong);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      padding: 0.85rem;
+      text-align: left;
+      transition: border-color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-spring);
+    }
+
+    .os-option:hover {
+      border-color: var(--accent-amber);
+      transform: translateY(-2px);
+    }
+
+    .modal-notice {
+      margin-top: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: var(--radius-sm);
+      background: var(--accent-sage-soft);
+      border: 1px solid rgba(22, 101, 52, 0.32);
+      color: var(--ink-primary);
+      font-size: var(--text-xs);
+      font-weight: 700;
+    }
+
+    .modal-notice[hidden] {
+      display: none;
+    }
+
+    /* Keyframe Animations */
+    @keyframes zzzFloat {
+
+      0%,
+      100% {
+        transform: translate(0, 0) scale(0.95);
+        opacity: 0.35;
+      }
+
+      50% {
+        transform: translate(5px, -8px) scale(1.06);
+        opacity: 0.95;
+      }
+    }
+
+    @keyframes keycapPop {
+      0% {
+        transform: translateY(6px) scale(0.75);
+        opacity: 0;
+      }
+
+      25% {
+        transform: translateY(-4px) scale(1.05);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(-22px) scale(0.9);
+        opacity: 0;
+      }
+    }
+
+    .zzz-a {
+      animation: zzzFloat 2.8s ease-in-out infinite;
+    }
+
+    .zzz-b {
+      animation: zzzFloat 2.8s ease-in-out 0.8s infinite;
+    }
+
+    .keycap-anim {
+      animation: keycapPop 0.65s var(--ease-smooth) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="aura-bg">
+    <div class="aura-layer-1" aria-hidden="true"></div>
+    <div class="aura-layer-2" aria-hidden="true"></div>
+
+    <div class="aura-content">
+      <header class="site-header">
+        <div class="container header-inner">
+          <a href="#inicio" class="brand-link">
+            <span class="brand-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 10L3.5 4.5L9 7.5" />
+                <path d="M19 10L20.5 4.5L15 7.5" />
+                <ellipse cx="12" cy="14" rx="8.5" ry="6.8" />
+                <circle cx="9.2" cy="13.5" r="1.1" fill="currentColor" stroke="none" />
+                <circle cx="14.8" cy="13.5" r="1.1" fill="currentColor" stroke="none" />
+              </svg>
+            </span>
+            <span>el Chambeador</span>
+          </a>
+
+          <nav class="nav-links" aria-label="Navegación principal">
+            <a href="#inicio">Compañero</a>
+            <a href="#que-hace">Qué hace</a>
+            <a href="#por-que">Por qué gusta</a>
+            <a href="#faq">Preguntas</a>
+            <a href="#evolucion">Apoyar</a>
+          </nav>
+
+          <div class="header-cta">
+            <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer"
+              class="btn btn-secondary">
+              Apoyar al dev
+            </a>
+            <button type="button" id="headerDownloadBtn" class="btn btn-primary">
+              Descargar
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main id="inicio">
+        <!-- HERO + OPEN CAT INTERACTING ACROSS THE ENTIRE PAGE -->
+        <section class="hero-section" aria-labelledby="heroTitle">
+          <div class="container hero-grid">
+            <div>
+              <div class="hero-pill">
+                <span>Un gato (por ahora) · Compañero de escritorio</span>
+              </div>
+
+              <h1 id="heroTitle" class="hero-title">
+                El gato de escritorio que <span>sí chambea contigo</span>
+              </h1>
+
+              <p class="hero-lead">
+                Toma tu ratón y sigue tu mirada por toda la página, acompaña tu escritura y descansa cuando haces pausa.
+              </p>
+
+              <p class="hero-desc">
+                <strong>el Chambeador</strong> trae vida tranquila a tu pantalla. Mueve el cursor por
+                cualquier punto de la página para ver cómo el gato sujeta el ratón con su pata y
+                gira la mirada, o empieza a escribir para ver cómo teclea, se acicala y duerme sin estorbar.
+              </p>
+
+              <div class="cta-group">
+                <button type="button" id="heroDownloadBtn" class="btn btn-primary">
+                  Descargar el Chambeador
+                </button>
+                <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer"
+                  class="btn btn-secondary">
+                  Apoyar al dev
+                </a>
+              </div>
+
+              <p class="hero-audience-note">
+                Pensado tanto para quienes aman los gatos como para quienes solo quieren un compañero
+                discreto y tranquilo que no interrumpa su jornada.
+              </p>
+            </div>
+
+            <!-- OPEN CAT ON THE CANVAS -->
+            <div class="open-cat-zone">
+              <div id="openCatCanvas" class="cat-open-canvas" role="img"
+                aria-label="Gato animado de el Chambeador tomando el ratón y siguiendo el cursor por toda la página">
+                <span id="petBubble" class="pet-bubble" aria-live="polite">¡Qué buenos mimos!</span>
+
+                <svg id="catSvg" viewBox="-200 -145 410 325" width="440" height="349"
+                  style="width: 100%; height: auto; overflow: visible;">
+                  <defs>
+                    <filter id="softFurShadow" x="-35%" y="-35%" width="170%" height="170%">
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="5.5" />
+                    </filter>
+                    <radialGradient id="muzzleCircleGrad" cx="50%" cy="50%" r="50%">
+                      <stop id="muzzleS0" offset="0%" stop-color="#261e1a" stop-opacity="0.95" />
+                      <stop id="muzzleS1" offset="62%" stop-color="#261e1a" stop-opacity="0.55" />
+                      <stop id="muzzleS2" offset="100%" stop-color="#dfd6c5" stop-opacity="0" />
+                    </radialGradient>
+                    <linearGradient id="leftPawGrad" gradientUnits="userSpaceOnUse" x1="-34" y1="12" x2="-44" y2="92">
+                      <stop id="pawLS0" offset="0%" stop-color="#dfd6c5" />
+                      <stop id="pawLS1" offset="45%" stop-color="#dfd6c5" />
+                      <stop id="pawLS2" offset="100%" stop-color="#261e1a" />
+                    </linearGradient>
+                    <linearGradient id="rightPawGrad" gradientUnits="userSpaceOnUse" x1="8" y1="12" x2="28" y2="92">
+                      <stop id="pawRS0" offset="0%" stop-color="#dfd6c5" />
+                      <stop id="pawRS1" offset="45%" stop-color="#dfd6c5" />
+                      <stop id="pawRS2" offset="100%" stop-color="#261e1a" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Tail -->
+                  <g id="tailGroup" style="transform-origin: 44px 52px;">
+                    <path id="tailCurve" d="M 44 52 C 78 60, 92 28, 118 32" fill="none" stroke="#261e1a"
+                      stroke-width="14" stroke-linecap="round" />
+                    <path id="tailCalicoTip" d="M 102 35 C 109 31, 114 31, 118 32" fill="none" stroke="#e38b47"
+                      stroke-width="14" stroke-linecap="round" opacity="0" />
+                  </g>
+
+                  <!-- Hind paws & soft leg shadows -->
+                  <g>
+                    <g filter="url(#softFurShadow)" opacity="0.28">
+                      <ellipse cx="-46" cy="87" rx="16" ry="5.5" fill="#9c8f7b" class="c-shade" />
+                      <ellipse cx="24" cy="87" rx="16" ry="5.5" fill="#9c8f7b" class="c-shade" />
+                    </g>
+                    <ellipse cx="-46" cy="78" rx="15" ry="11" fill="#261e1a" stroke="#1c1613" stroke-width="1.8"
+                      class="c-paw c-hind" />
+                    <ellipse cx="24" cy="78" rx="15" ry="11" fill="#261e1a" stroke="#1c1613" stroke-width="1.8"
+                      class="c-paw c-hind" />
+                  </g>
+
+                  <!-- Desk mouse -->
+                  <g id="mouseGroup">
+                    <g transform="translate(-112, 102) rotate(-12)">
+                      <ellipse cx="0" cy="0" rx="16" ry="21" fill="#ffffff" stroke="#18181b" stroke-width="2.2" />
+                      <path id="mBtnL" d="M -14 -2 C -14 -14, -2 -20, 0 -20 L 0 -2 Z" fill="#b45309" opacity="0" />
+                      <path id="mBtnR" d="M 14 -2 C 14 -14, 2 -20, 0 -20 L 0 -2 Z" fill="#b45309" opacity="0" />
+                      <rect x="-1.8" y="-13" width="3.6" height="7" rx="1.8" fill="#166534" />
+                      <line x1="0" y1="-20" x2="0" y2="-2" stroke="#18181b" stroke-width="1.5" />
+                    </g>
+                  </g>
+
+                  <!-- Desk keyboard -->
+                  <g transform="translate(8, 114)">
+                    <path d="M -104 -27 L 104 -27 L 114 33 Q 114 38 107 38 L -107 38 Q -114 38 -114 33 Z" fill="#1c1c20"
+                      stroke="#09090b" stroke-width="2" stroke-linejoin="round" />
+                    <path d="M -102 -28 L 102 -28 L 111 28 L -111 28 Z" fill="#2e2e33" stroke="#09090b"
+                      stroke-width="1.4" stroke-linejoin="round" />
+                    <g transform="translate(0, -16)">
+                      <rect x="-96" y="-4.5" width="14" height="7.5" rx="2" fill="#52525b" />
+                      <rect x="-78" y="-4.5" width="15" height="7.5" rx="2" fill="#52525b" />
+                      <rect x="-59" y="-4.5" width="17" height="7.5" rx="2" fill="#52525b" />
+                      <rect x="-38" y="-4.5" width="92" height="7.5" rx="2.2" fill="#f7f6f1" />
+                      <rect x="58" y="-4.5" width="17" height="7.5" rx="2" fill="#52525b" />
+                      <rect x="79" y="-4.5" width="18" height="7.5" rx="2" fill="#52525b" />
+                    </g>
+                    <g transform="translate(0, -5)">
+                      <rect x="-98" y="-4.5" width="20" height="7.5" rx="2" fill="#b45309" />
+                      <rect x="-75" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="-58" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="-41" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="-24" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="-7" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="10" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="27" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="44" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="61" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="76" y="-4.5" width="22" height="7.5" rx="2" fill="#52525b" />
+                    </g>
+                    <g transform="translate(0, 6)">
+                      <rect x="-99" y="-4.5" width="22" height="7.5" rx="2" fill="#52525b" />
+                      <rect x="-74" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="-57" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="-40" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="-23" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="-6" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="11" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="28" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="45" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="62" y="-4.5" width="13" height="7.5" rx="2" fill="#f7f6f1" />
+                      <rect x="77" y="-4.5" width="22" height="7.5" rx="2" fill="#52525b" />
+                    </g>
+                    <rect id="keyFlash" x="-15" y="-12" width="16" height="7.5" rx="2" fill="#f5c38b" opacity="0" />
+                  </g>
+
+                  <!-- Upper body pivot: torso, soft neck & elbow shadows, arms, head -->
+                  <g id="upperBodyPivot" style="transform-origin: -12px 76px;">
+                    <g id="torsoGroup">
+                      <path
+                        d="M -52 75 C -58 56, -52 24, -44 -2 C -40 -16, -38 -28, -36 -38 C -22 -48, 2 -46, 12 -34 C 20 -22, 26 -12, 34 2 C 46 22, 52 50, 44 73 C 34 83, -44 83, -52 75 Z"
+                        fill="#dfd6c5" class="c-body" />
+                      <ellipse id="neckShadow" cx="-14" cy="-22" rx="28" ry="9" fill="#9c8f7b" opacity="0.24"
+                        filter="url(#softFurShadow)" class="c-shade" />
+                      <path id="calicoSpot" d="M 22 -14 C 36 4, 48 34, 43 66 C 28 62, 18 36, 15 10 Z" fill="#e38b47"
+                        opacity="0" />
+                      <g id="tabbyStripes" fill="none" stroke="#d47328" stroke-width="4" stroke-linecap="round"
+                        opacity="0">
+                        <path d="M 8 -14 Q 18 -12 25 -8" />
+                        <path d="M 12 2 Q 24 4 33 9" />
+                        <path d="M 15 18 Q 28 21 38 26" />
+                      </g>
+                    </g>
+
+                    <g id="elbowShadows" filter="url(#softFurShadow)" opacity="0.22">
+                      <ellipse id="leftElbowShadow" cx="-39" cy="52" rx="11" ry="6" fill="#9c8f7b" class="c-shade" />
+                      <ellipse id="rightElbowShadow" cx="18" cy="52" rx="11" ry="6" fill="#9c8f7b" class="c-shade" />
+                    </g>
+
+                    <!-- Left arm -->
+                    <g>
+                      <path id="leftArmPath" d="M -34 12 Q -40 52 -44 92" fill="none" stroke="url(#leftPawGrad)"
+                        stroke-width="18" stroke-linecap="round" />
+                      <circle id="leftPawTip" cx="-44" cy="92" r="9.5" fill="#261e1a" class="c-paw" />
+                    </g>
+
+                    <!-- Head -->
+                    <g id="headGroup" style="transform-origin: -14px -44px;">
+                      <g style="transform-origin: -42px -74px;">
+                        <path d="M -54 -62 Q -58 -96 -45 -100 Q -32 -96 -26 -74 Z" fill="#261e1a" class="c-ear-l" />
+                        <path d="M -49 -66 Q -51 -88 -44 -90 Q -35 -88 -31 -74 Z" fill="#57463f" class="c-ear-in" />
+                      </g>
+                      <g style="transform-origin: 12px -78px;">
+                        <path d="M -2 -76 Q 7 -106 20 -106 Q 30 -98 25 -66 Z" fill="#261e1a" class="c-ear-r" />
+                        <path d="M 3 -76 Q 9 -96 18 -96 Q 25 -90 21 -68 Z" fill="#57463f" class="c-ear-in" />
+                      </g>
+
+                      <ellipse cx="-15" cy="-54" rx="44" ry="35" transform="rotate(-4 -15 -54)" fill="#dfd6c5"
+                        class="c-body" />
+                      <!-- Cute soft circular muzzle shading -->
+                      <ellipse id="muzzleCircleMask" cx="-15" cy="-45" rx="25" ry="18" fill="url(#muzzleCircleGrad)" />
+
+                      <g>
+                        <g id="openEyesGroup">
+                          <g transform="translate(-31, -54) rotate(-5)">
+                            <ellipse cx="0" cy="0" rx="11.5" ry="9" fill="#6aa9e6" class="c-iris" />
+                            <g id="leftPupilGroup">
+                              <ellipse cx="0" cy="0" rx="4" ry="6.8" fill="#09090b" />
+                              <circle cx="-1.6" cy="-2.2" r="1.5" fill="#ffffff" opacity="0.9" />
+                            </g>
+                          </g>
+                          <g transform="translate(6, -57) rotate(5)">
+                            <ellipse cx="0" cy="0" rx="11.5" ry="9" fill="#6aa9e6" class="c-iris" />
+                            <g id="rightPupilGroup">
+                              <ellipse cx="0" cy="0" rx="4" ry="6.8" fill="#09090b" />
+                              <circle cx="-1.6" cy="-2.2" r="1.5" fill="#ffffff" opacity="0.9" />
+                            </g>
+                          </g>
+                        </g>
+
+                        <g id="closedEyesGroup" stroke="#18181b" stroke-width="2.6" fill="none" stroke-linecap="round"
+                          opacity="0">
+                          <path d="M -42 -54 Q -31 -48 -20 -54" />
+                          <path d="M -5 -57 Q 6 -51 17 -57" />
+                        </g>
+
+                        <!-- Whiskers -->
+                        <g stroke="#d6cfc2" stroke-width="1.2" stroke-linecap="round" opacity="0.85" class="c-whisker">
+                          <line x1="-38" y1="-42" x2="-56" y2="-40" />
+                          <line x1="-37" y1="-37" x2="-55" y2="-32" />
+                          <line x1="-36" y1="-32" x2="-52" y2="-25" />
+                          <line x1="10" y1="-45" x2="28" y2="-47" />
+                          <line x1="11" y1="-40" x2="29" y2="-39" />
+                          <line x1="10" y1="-35" x2="27" y2="-32" />
+                        </g>
+
+                        <!-- Tongue -->
+                        <g id="tongueGroup" transform="translate(-14, -34) rotate(-14)" opacity="0">
+                          <ellipse cx="0" cy="0" rx="3.8" ry="6.2" fill="#f47296" />
+                          <line x1="0" y1="-3.5" x2="0" y2="3.5" stroke="#db537a" stroke-width="1.1"
+                            stroke-linecap="round" opacity="0.7" />
+                        </g>
+
+                        <!-- Affection heart -->
+                        <g id="heartGroup" transform="translate(34, -92)" opacity="0">
+                          <path d="M 0 4 C -6 -2, -12 3, 0 12 C 12 3, 6 -2, 0 4 Z" fill="#fb7185" />
+                        </g>
+
+                        <!-- Nap Zzz -->
+                        <g id="zzzGroup" fill="#3f3f46" font-weight="800" opacity="0">
+                          <text x="34" y="-78" font-size="13" class="zzz-a">z</text>
+                          <text x="46" y="-92" font-size="17" class="zzz-b">Z</text>
+                        </g>
+                      </g>
+                    </g>
+
+                    <!-- Right arm -->
+                    <g>
+                      <path id="rightArmPath" d="M 8 12 Q 18 52 28 92" fill="none" stroke="url(#rightPawGrad)"
+                        stroke-width="18" stroke-linecap="round" />
+                      <circle id="rightPawTip" cx="28" cy="92" r="9.5" fill="#261e1a" class="c-paw" />
+                    </g>
+                  </g>
+
+                  <!-- Floating keycap -->
+                  <g id="floatingKeyGroup" transform="translate(42, 58)" opacity="0">
+                    <g id="floatingKeyInner" class="keycap-anim">
+                      <rect x="-15" y="-14" width="30" height="28" rx="6.5" fill="#ffffff" stroke="#3f3f46"
+                        stroke-width="1.8" />
+                      <text id="floatingKeyText" x="0" y="3" text-anchor="middle" fill="#141417" font-weight="800"
+                        font-size="11">A</text>
+                    </g>
+                  </g>
+                </svg>
+              </div>
+
+              <!-- Centered Coat Swatches Directly Beneath Open Cat -->
+              <div class="coat-dock">
+                <span class="coat-dock-label">Cambia su pelaje</span>
+                <div class="coat-row" role="radiogroup" aria-label="Color o pelaje del gato">
+                  <button type="button" class="coat-pill" role="radio" aria-checked="true" data-coat="siamese">
+                    <span class="coat-dot" style="background: #dfd6c5; box-shadow: inset -4px -4px 0 #261e1a;"></span>
+                    <span>Siamés</span>
+                  </button>
+                  <button type="button" class="coat-pill" role="radio" aria-checked="false" data-coat="white">
+                    <span class="coat-dot" style="background: #faf9f5;"></span>
+                    <span>Blanco</span>
+                  </button>
+                  <button type="button" class="coat-pill" role="radio" aria-checked="false" data-coat="black">
+                    <span class="coat-dot" style="background: #232326;"></span>
+                    <span>Negro</span>
+                  </button>
+                  <button type="button" class="coat-pill" role="radio" aria-checked="false" data-coat="orange">
+                    <span class="coat-dot" style="background: #f4a15e;"></span>
+                    <span>Naranja</span>
+                  </button>
+                  <button type="button" class="coat-pill" role="radio" aria-checked="false" data-coat="gray">
+                    <span class="coat-dot" style="background: #8e99a8;"></span>
+                    <span>Gris</span>
+                  </button>
+                  <button type="button" class="coat-pill" role="radio" aria-checked="false" data-coat="calico">
+                    <span class="coat-dot"
+                      style="background: linear-gradient(120deg, #faf9f5 45%, #e38b47 45% 75%, #231f1e 75%);"></span>
+                    <span>Calicó</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ¿QUÉ HACE? WITH CREATIVE HOVER ANIMATIONS -->
+        <section id="que-hace" class="section" aria-labelledby="whatTitle">
+          <div class="container">
+            <div class="section-eyebrow">¿Qué hace?</div>
+            <h2 id="whatTitle" class="section-title">Presencia viva en tu escritorio, sin estorbar</h2>
+            <p class="section-lead">
+              Pasa el cursor por cada tarjeta para descubrir sus pequeños detalles de escritorio.
+            </p>
+
+            <div class="cards-grid">
+              <article class="feature-tile feature-tile--paw" tabindex="0">
+                <svg class="peeking-paw" viewBox="0 0 48 56" fill="none" aria-hidden="true">
+                  <path d="M24 2 C31 2 35 8 35 18 L35 44 C35 49 30 53 24 53 C18 53 13 49 13 44 L13 18 C13 8 17 2 24 2 Z"
+                    fill="#b45309" stroke="#18181b" stroke-width="2" />
+                  <circle cx="17.5" cy="43" r="2.5" fill="#fed7aa" />
+                  <circle cx="24" cy="41.5" r="2.5" fill="#fed7aa" />
+                  <circle cx="30.5" cy="43" r="2.5" fill="#fed7aa" />
+                  <ellipse cx="24" cy="47.5" rx="4.5" ry="3" fill="#fed7aa" />
+                </svg>
+                <h3>Patitas que acompañan tu ritmo</h3>
+                <p>
+                  Toma el ratón cuando mueves el cursor por la página y responde a tus pulsaciones con
+                  patas y teclas flotantes discretas.
+                </p>
+              </article>
+
+              <article class="feature-tile feature-tile--yarn" tabindex="0">
+                <svg class="rolling-yarn" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <circle cx="24" cy="24" r="16" fill="#b45309" stroke="#18181b" stroke-width="2" />
+                  <path d="M10 18 Q24 12 38 20" stroke="#18181b" stroke-width="1.8" stroke-linecap="round" />
+                  <path d="M9 28 Q24 35 39 27" stroke="#18181b" stroke-width="1.8" stroke-linecap="round" />
+                  <path d="M18 9 Q15 24 22 39" stroke="#18181b" stroke-width="1.8" stroke-linecap="round" />
+                  <path d="M30 10 Q33 24 26 39" stroke="#18181b" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <h3>Pausas con acicalamiento y curiosidad</h3>
+                <p>
+                  Cuando haces una pausa, mira alrededor, parpadea o se lame la pata con calma antes de
+                  volver a seguirte.
+                </p>
+              </article>
+
+              <article class="feature-tile feature-tile--nap" tabindex="0">
+                <span class="nap-tag" aria-hidden="true">
+                  <span>Siesta 60s</span>
+                  <span class="nap-zzz">zZ</span>
+                </span>
+                <h3>Siesta tranquila y despertar al vuelo</h3>
+                <p>
+                  Tras 60 segundos sin actividad se queda dormido en silencio y despierta al instante
+                  cuando mueves el ratón o escribes.
+                </p>
+              </article>
+
+              <article class="feature-tile feature-tile--coats" tabindex="0">
+                <span class="key-badge" aria-hidden="true">
+                  <span>6 PELAJES</span>
+                </span>
+                <h3>Seis pelajes y cola al compás</h3>
+                <p>
+                  Cambia entre Siamés, Blanco, Negro, Naranja, Gris o Calicó y observa cómo su cola se
+                  anima según tu ritmo.
+                </p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <!-- MARKETING / EDITORIAL PITCH -->
+        <section id="por-que" class="section" aria-labelledby="pitchTitle">
+          <div class="container">
+            <div class="section-eyebrow">Compañía sin ruido</div>
+            <h2 id="pitchTitle" class="section-title">La calma de tener compañía sin pedir café</h2>
+
+            <div class="pitch-layout">
+              <div class="pitch-card">
+                <div>
+                  <p class="pitch-headline">
+                    El único compañero de escritorio que <span>sí chambea contigo</span>, nunca pide café ni
+                    interrumpe lo que estás haciendo.
+                  </p>
+                  <p style="margin-top: 0.9rem; color: var(--ink-secondary); font-size: var(--text-base);">
+                    Tu escritorio no necesita más avisos ruidosos ni distracciones que compitan por tu
+                    atención. <strong>el Chambeador</strong> ofrece una presencia ligera y amable que hace
+                    más llevadera la jornada sin quitarte ni un ápice de foco.
+                  </p>
+                </div>
+
+                <div class="cta-group" style="margin-bottom: 0;">
+                  <button type="button" id="pitchDownloadBtn" class="btn btn-primary">
+                    Probar en mi escritorio
+                  </button>
+                  <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer"
+                    class="btn btn-secondary">
+                    Apoyar al dev
+                  </a>
+                </div>
+              </div>
+
+              <div class="audience-stack">
+                <div class="audience-card">
+                  <h3>Si te encantan los gatos</h3>
+                  <p>
+                    Disfruta de un compañero expresivo que toma el ratón por toda la pantalla, agradece
+                    las caricias en la cabeza, se acicala y cambia de pelaje al gusto.
+                  </p>
+                </div>
+
+                <div class="audience-card">
+                  <h3>Si no eres muy de gatos</h3>
+                  <p>
+                    No maúlla, no pide atención y no tapa tu trabajo. Es un detalle visual limpio y
+                    sereno que acompaña en silencio y duerme cuando no hay actividad.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PREGUNTAS Y RESPUESTAS (SMOOTH CSS GRID-ROW ACCORDION) -->
+        <section id="faq" class="section" aria-labelledby="faqTitle">
+          <div class="container">
+            <div class="section-eyebrow">Preguntas y respuestas</div>
+            <h2 id="faqTitle" class="section-title">Dudas habituales antes de empezar</h2>
+            <p class="section-lead">
+              Respuestas claras sobre compatibilidad, privacidad, tranquilidad en el escritorio y
+              personalización.
+            </p>
+
+            <div class="faq-stack">
+              <div class="faq-item">
+                <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-panel-1"
+                  id="faq-q-1">
+                  <span>¿Funciona solo en Windows o también en otros sistemas operativos?</span>
+                  <span class="faq-sign" aria-hidden="true">+</span>
+                </button>
+                <div id="faq-panel-1" class="faq-collapse" role="region" aria-labelledby="faq-q-1">
+                  <div class="faq-collapse-inner">
+                    <div class="faq-body">
+                      Está pensado para funcionar en los principales sistemas operativos de escritorio
+                      (Windows, macOS y Linux). Algunos comportamientos de ventana o lectura de actividad
+                      pueden requerir permisos específicos según el sistema operativo.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-panel-2"
+                  id="faq-q-2">
+                  <span>¿Es un keylogger o guarda lo que escribo y hago?</span>
+                  <span class="faq-sign" aria-hidden="true">+</span>
+                </button>
+                <div id="faq-panel-2" class="faq-collapse" role="region" aria-labelledby="faq-q-2">
+                  <div class="faq-collapse-inner">
+                    <div class="faq-body">
+                      <strong>No, en absoluto.</strong> el Chambeador no es un keylogger ni registra tus
+                      pulsaciones, textos o contraseñas. Las reacciones ocurren al instante en tu equipo
+                      para animar las patas, las teclas flotantes y el descanso, sin guardar historial ni
+                      enviar datos a servidores externos.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-panel-3"
+                  id="faq-q-3">
+                  <span>¿Molesta o tapa mis ventanas mientras trabajo?</span>
+                  <span class="faq-sign" aria-hidden="true">+</span>
+                </button>
+                <div id="faq-panel-3" class="faq-collapse" role="region" aria-labelledby="faq-q-3">
+                  <div class="faq-collapse-inner">
+                    <div class="faq-body">
+                      Está diseñado para acompañar sin estorbar. No muestra ventanas emergentes ni sonidos
+                      molestos, y pasa automáticamente a modo siesta tras 60 segundos de inactividad.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-panel-4"
+                  id="faq-q-4">
+                  <span>¿Puedo cambiar su aspecto y por qué dice “un gato (por ahora)”?</span>
+                  <span class="faq-sign" aria-hidden="true">+</span>
+                </button>
+                <div id="faq-panel-4" class="faq-collapse" role="region" aria-labelledby="faq-q-4">
+                  <div class="faq-collapse-inner">
+                    <div class="faq-body">
+                      Puedes elegir entre seis pelajes (Siamés, Blanco, Negro, Naranja, Gris y Calicó).
+                      Decimos “un gato (por ahora)” porque este gato es el primer compañero, y el
+                      proyecto seguirá evolucionando con nuevas animaciones y futuros compañeros de
+                      escritorio.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- EVOLUCIÓN Y APOYO AL PROYECTO -->
+        <section id="evolucion" class="section" aria-labelledby="supportTitle">
+          <div class="container">
+            <div class="support-band">
+              <div>
+                <div class="section-eyebrow">El proyecto va a evolucionar</div>
+                <h2 id="supportTitle" class="section-title">
+                  Ayuda a que el Chambeador siga creciendo
+                </h2>
+                <p style="color: var(--ink-secondary); font-size: var(--text-base);">
+                  Este gato es solo el comienzo. Queremos sumar más animaciones, más detalles de
+                  personalidad y nuevos compañeros para el escritorio. Si el proyecto te acompaña en tu
+                  día a día, puedes apoyar directamente su evolución.
+                </p>
+                <div class="evolution-chips">
+                  <span class="evolution-chip">Nuevas animaciones</span>
+                  <span class="evolution-chip">Más detalles visuales</span>
+                  <span class="evolution-chip">Futuros compañeros</span>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem;">
+                <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer"
+                  class="btn btn-primary" style="padding: 0.85rem 1.5rem;">
+                  Apoyar al dev en PayPal
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- FOOTER FINAL -->
+      <footer class="site-footer">
+        <div class="container footer-row">
+          <div>
+            <div class="brand-link" style="margin-bottom: 0.25rem;">
+              <span>el Chambeador</span>
+            </div>
+            <p style="font-size: var(--text-xs); font-weight: 600; color: var(--ink-secondary);">
+              El compañero de escritorio que sí chambea contigo · Un gato (por ahora).
+            </p>
+          </div>
+
+          <nav class="footer-nav" aria-label="Enlaces legales y de descarga">
+            <button type="button" id="footerTermsBtn">Términos y condiciones</button>
+            <button type="button" id="footerPrivacyBtn">Privacidad</button>
+            <button type="button" id="footerDownloadBtn">Descargar</button>
+            <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer">
+              Apoyar al dev
+            </a>
+          </nav>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL DIALOG FOR DOWNLOAD, TERMS & PRIVACY -->
+  <div id="infoModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+    <div class="modal-card">
+      <div class="modal-top">
+        <h2 id="modalTitle" class="modal-title">Descargar el Chambeador</h2>
+        <button type="button" id="modalCloseBtn" class="modal-close" aria-label="Cerrar ventana">×</button>
+      </div>
+      <div id="modalBody" class="modal-content"></div>
+      <div id="modalNotice" class="modal-notice" role="status" aria-live="polite" hidden></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const COAT_PALETTES = {
+        siamese: {
+          body: "#dfd6c5",
+          shade: "#9c8f7b",
+          point: "#261e1a",
+          pawTip: "#261e1a",
+          earLeft: "#261e1a",
+          earRight: "#261e1a",
+          earInner: "#57463f",
+          eyeIris: "#6aa9e6",
+          whisker: "#d6cfc2",
+          hindOutline: "#1c1613",
+          muzzleColor: "#261e1a",
+          muzzleOpacity: "0.95",
+          calico: false,
+          stripe: false,
+          dark: false,
+        },
+        white: {
+          body: "#faf9f5",
+          shade: "#9ca3af",
+          point: "#faf9f5",
+          pawTip: "#faf9f5",
+          earLeft: "#faf9f5",
+          earRight: "#faf9f5",
+          earInner: "#f3b8be",
+          eyeIris: "#5b9bd5",
+          whisker: "#a8a29e",
+          hindOutline: "#9ca3af",
+          muzzleColor: "#9ca3af",
+          muzzleOpacity: "0.26",
+          calico: false,
+          stripe: false,
+          dark: false,
+        },
+        black: {
+          body: "#232326",
+          shade: "#3f3f46",
+          point: "#18181b",
+          pawTip: "#18181b",
+          earLeft: "#232326",
+          earRight: "#232326",
+          earInner: "#52525b",
+          eyeIris: "#eab308",
+          whisker: "#71717a",
+          hindOutline: "#09090b",
+          muzzleColor: "#3f3f46",
+          muzzleOpacity: "0.55",
+          calico: false,
+          stripe: false,
+          dark: true,
+        },
+        orange: {
+          body: "#f4a15e",
+          shade: "#b55214",
+          point: "#c45a16",
+          pawTip: "#f4a15e",
+          earLeft: "#f4a15e",
+          earRight: "#f4a15e",
+          earInner: "#fed7aa",
+          eyeIris: "#14b88a",
+          whisker: "#fff7ed",
+          hindOutline: "#9a3412",
+          stripeColor: "#d47328",
+          muzzleColor: "#c45a16",
+          muzzleOpacity: "0.56",
+          calico: false,
+          stripe: true,
+          dark: false,
+        },
+        gray: {
+          body: "#8e99a8",
+          shade: "#475569",
+          point: "#3e4959",
+          pawTip: "#7a8696",
+          earLeft: "#8e99a8",
+          earRight: "#8e99a8",
+          earInner: "#f3b8be",
+          eyeIris: "#f59e0b",
+          whisker: "#e2e8f0",
+          hindOutline: "#475569",
+          stripeColor: "#64748b",
+          muzzleColor: "#3e4959",
+          muzzleOpacity: "0.58",
+          calico: false,
+          stripe: true,
+          dark: false,
+        },
+        calico: {
+          body: "#faf9f5",
+          shade: "#9ca3af",
+          point: "#231f1e",
+          pawTip: "#faf9f5",
+          earLeft: "#faf9f5",
+          earRight: "#231f1e",
+          earInner: "#f3b8be",
+          eyeIris: "#c88a1e",
+          whisker: "#9ca3af",
+          hindOutline: "#9ca3af",
+          spotColor: "#e38b47",
+          muzzleColor: "#e38b47",
+          muzzleOpacity: "0.34",
+          calico: true,
+          stripe: false,
+          dark: false,
+        },
+      };
+
+      const SLEEP_TIMEOUT_MS = 60000;
+      const IDLE_CHECK_MS = 4500;
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      const openCatCanvas = document.getElementById("openCatCanvas");
+      const catSvg = document.getElementById("catSvg");
+      const petBubble = document.getElementById("petBubble");
+
+      const tailGroup = document.getElementById("tailGroup");
+      const tailCurve = document.getElementById("tailCurve");
+      const tailCalicoTip = document.getElementById("tailCalicoTip");
+      const mouseGroup = document.getElementById("mouseGroup");
+      const mBtnL = document.getElementById("mBtnL");
+      const mBtnR = document.getElementById("mBtnR");
+      const keyFlash = document.getElementById("keyFlash");
+      const neckShadow = document.getElementById("neckShadow");
+      const elbowShadows = document.getElementById("elbowShadows");
+      const leftElbowShadow = document.getElementById("leftElbowShadow");
+      const rightElbowShadow = document.getElementById("rightElbowShadow");
+      const calicoSpot = document.getElementById("calicoSpot");
+      const tabbyStripes = document.getElementById("tabbyStripes");
+      const leftArmPath = document.getElementById("leftArmPath");
+      const rightArmPath = document.getElementById("rightArmPath");
+      const leftPawTip = document.getElementById("leftPawTip");
+      const rightPawTip = document.getElementById("rightPawTip");
+      const headGroup = document.getElementById("headGroup");
+      const leftPupilGroup = document.getElementById("leftPupilGroup");
+      const rightPupilGroup = document.getElementById("rightPupilGroup");
+      const openEyesGroup = document.getElementById("openEyesGroup");
+      const closedEyesGroup = document.getElementById("closedEyesGroup");
+      const tongueGroup = document.getElementById("tongueGroup");
+      const heartGroup = document.getElementById("heartGroup");
+      const zzzGroup = document.getElementById("zzzGroup");
+      const floatingKeyGroup = document.getElementById("floatingKeyGroup");
+      const floatingKeyInner = document.getElementById("floatingKeyInner");
+      const floatingKeyText = document.getElementById("floatingKeyText");
+
+      let currentCoat = "siamese";
+      let gazeNormX = 0.5;
+      let gazeNormY = 0.5;
+      let isSleeping = false;
+      let idleState = "active"; // active | lookAround | groom | blink
+      let groomPhase = "none"; // none | bow | lick | return
+      let tongueOut = false;
+      let isPetting = false;
+      let lastActivityTs = Date.now();
+      let leftPawPos = { x: -44, y: 92 };
+      let rightPawPos = { x: 28, y: 92 };
+      let mouseOffset = { x: 0, y: 0 };
+      let headState = { x: 0, y: 0, rot: 0 };
+      let tailAngle = 0;
+      let tailPhase = 0;
+      let keyTimestamps = [];
+      let idleCycle = 0;
+      let groomTimers = [];
+      let petTimer = null;
+      let lookUntil = 0;
+
+      function applyCoat(coatName) {
+        currentCoat = coatName;
+        const p = COAT_PALETTES[coatName] || COAT_PALETTES.siamese;
+
+        document.querySelectorAll(".c-body").forEach((el) => el.setAttribute("fill", p.body));
+        document.querySelectorAll(".c-shade").forEach((el) => el.setAttribute("fill", p.shade));
+        document.querySelectorAll(".c-paw").forEach((el) => el.setAttribute("fill", p.pawTip));
+        document.querySelectorAll(".c-hind").forEach((el) => el.setAttribute("stroke", p.hindOutline));
+        document.querySelectorAll(".c-ear-l").forEach((el) => el.setAttribute("fill", p.earLeft));
+        document.querySelectorAll(".c-ear-r").forEach((el) => el.setAttribute("fill", p.earRight));
+        document.querySelectorAll(".c-ear-in").forEach((el) => el.setAttribute("fill", p.earInner));
+        document.querySelectorAll(".c-iris").forEach((el) => el.setAttribute("fill", p.eyeIris));
+        document.querySelectorAll(".c-whisker").forEach((el) => el.setAttribute("stroke", p.whisker));
+
+        document.getElementById("muzzleS0").setAttribute("stop-color", p.muzzleColor);
+        document.getElementById("muzzleS0").setAttribute("stop-opacity", p.muzzleOpacity);
+        document.getElementById("muzzleS1").setAttribute("stop-color", p.muzzleColor);
+        document.getElementById("muzzleS2").setAttribute("stop-color", p.body);
+
+        document.getElementById("pawLS0").setAttribute("stop-color", p.body);
+        document.getElementById("pawLS1").setAttribute("stop-color", p.body);
+        document.getElementById("pawLS2").setAttribute("stop-color", p.pawTip);
+
+        document.getElementById("pawRS0").setAttribute("stop-color", p.body);
+        document.getElementById("pawRS1").setAttribute("stop-color", p.body);
+        document.getElementById("pawRS2").setAttribute("stop-color", p.pawTip);
+
+        tailCurve.setAttribute("stroke", p.point);
+        tailCalicoTip.setAttribute("opacity", p.calico && !isSleeping ? "1" : "0");
+
+        if (p.calico && p.spotColor) {
+          calicoSpot.setAttribute("fill", p.spotColor);
+          calicoSpot.setAttribute("opacity", "0.92");
+        } else {
+          calicoSpot.setAttribute("opacity", "0");
+        }
+
+        if (p.stripe && p.stripeColor) {
+          tabbyStripes.setAttribute("stroke", p.stripeColor);
+          tabbyStripes.setAttribute("opacity", "0.72");
+        } else {
+          tabbyStripes.setAttribute("opacity", "0");
+        }
+
+        neckShadow.setAttribute("opacity", p.dark ? "0.45" : "0.24");
+        elbowShadows.setAttribute("opacity", p.dark ? "0.42" : "0.22");
+
+        document.querySelectorAll(".coat-pill").forEach((btn) => {
+          btn.setAttribute("aria-checked", String(btn.getAttribute("data-coat") === coatName));
+        });
+      }
+
+      document.querySelectorAll(".coat-pill").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          applyCoat(btn.getAttribute("data-coat"));
+          wakeAndTouch();
+        });
+      });
+
+      function clearGroomTimers() {
+        groomTimers.forEach((id) => window.clearTimeout(id));
+        groomTimers = [];
+      }
+
+      function wakeAndTouch() {
+        lastActivityTs = Date.now();
+        if (isSleeping) {
+          isSleeping = false;
+          idleState = "active";
+          groomPhase = "none";
+          tongueOut = false;
+        }
+      }
+
+      function putToSleep() {
+        clearGroomTimers();
+        isSleeping = true;
+        idleState = "active";
+        groomPhase = "none";
+        tongueOut = false;
+        isPetting = false;
+        leftPawPos = { x: -44, y: 92 };
+        rightPawPos = { x: 28, y: 92 };
+        mouseOffset = { x: 0, y: 0 };
+      }
+
+      // Full-page pointer tracking so the cat grabs the mouse and looks anywhere on screen
+      function mapPointerAcrossPage(clientX, clientY) {
+        if (!catSvg) return;
+        const rect = catSvg.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+
+        const vw = Math.max(1, window.innerWidth);
+        const vh = Math.max(1, window.innerHeight);
+
+        const headCenterClientX = rect.left + ((-14 - -200) / 410) * rect.width;
+        const headCenterClientY = rect.top + ((-44 - -145) / 325) * rect.height;
+
+        const relX = (clientX - headCenterClientX) / (vw * 0.55);
+        const relY = (clientY - headCenterClientY) / (vh * 0.55);
+        const clampedX = Math.max(-1, Math.min(1, relX));
+        const clampedY = Math.max(-1, Math.min(1, relY));
+
+        gazeNormX = 0.5 + clampedX * 0.5;
+        gazeNormY = 0.5 + clampedY * 0.5;
+
+        const distToHeadPx = Math.hypot(clientX - headCenterClientX, clientY - headCenterClientY);
+        if (!isSleeping && distToHeadPx < Math.min(rect.width * 0.24, 96)) {
+          isPetting = true;
+          petBubble.classList.add("is-visible");
+          if (petTimer) window.clearTimeout(petTimer);
+          petTimer = window.setTimeout(() => {
+            isPetting = false;
+            petBubble.classList.remove("is-visible");
+          }, 950);
+        }
+
+        if (!isSleeping && idleState === "active") {
+          const dx = gazeNormX - 0.5;
+          const dy = gazeNormY - 0.5;
+          const radial = Math.min(1, Math.hypot(dx, dy) / 0.7071);
+          const near = 1 - radial;
+          const conv = near * 1.4;
+          const px = dx * 8.5;
+          const py = dy * 5.2;
+          const scale = (0.92 + near * 0.18).toFixed(2);
+
+          leftPupilGroup.setAttribute("transform", `translate(${(px + conv).toFixed(1)}, ${py.toFixed(1)}) scale(${scale})`);
+          rightPupilGroup.setAttribute("transform", `translate(${(px - conv).toFixed(1)}, ${py.toFixed(1)}) scale(${scale})`);
+
+          // Take the mouse across the entire page with the left paw
+          const mx = dx * 16;
+          const my = dy * 10;
+          mouseOffset = { x: mx, y: my };
+          leftPawPos = { x: -109 + mx, y: 93 + my };
+        }
+      }
+
+      document.addEventListener("pointermove", (e) => {
+        wakeAndTouch();
+        mapPointerAcrossPage(e.clientX, e.clientY);
+      }, { passive: true });
+
+      document.addEventListener("pointerdown", (e) => {
+        wakeAndTouch();
+        if (e.target && e.target.closest && e.target.closest("#infoModal")) return;
+        if (e.button === 2) {
+          mBtnR.setAttribute("opacity", "0.95");
+        } else {
+          mBtnL.setAttribute("opacity", "0.95");
+        }
+        window.setTimeout(() => {
+          mBtnL.setAttribute("opacity", "0");
+          mBtnR.setAttribute("opacity", "0");
+        }, 220);
+      });
+
+      openCatCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      // Full-page typing reaction
+      function handleKeyPulse(label) {
+        wakeAndTouch();
+        const now = Date.now();
+        keyTimestamps = keyTimestamps.filter((ts) => now - ts < 1200);
+        keyTimestamps.push(now);
+
+        const cap = label === " " ? "␣" : label.length === 1 ? label.toUpperCase() : label.slice(0, 4).toUpperCase();
+
+        if (idleState !== "groom") {
+          const useRight = keyTimestamps.length % 2 === 1;
+          if (useRight) {
+            rightPawPos = { x: 18 + ((keyTimestamps.length * 9) % 52), y: 112 };
+          } else {
+            leftPawPos = { x: -72 + ((keyTimestamps.length * 11) % 52), y: 112 };
+          }
+          window.setTimeout(() => {
+            if (idleState !== "groom" && !isSleeping) {
+              const dx = gazeNormX - 0.5;
+              const dy = gazeNormY - 0.5;
+              leftPawPos = { x: -109 + dx * 16, y: 93 + dy * 10 };
+              rightPawPos = { x: 28, y: 92 };
+            }
+          }, 160);
+        }
+
+        keyFlash.setAttribute("opacity", "0.95");
+        window.setTimeout(() => keyFlash.setAttribute("opacity", "0"), 150);
+
+        floatingKeyText.textContent = cap;
+        floatingKeyText.setAttribute("font-size", cap.length > 3 ? "8" : "11");
+        floatingKeyGroup.setAttribute("opacity", "1");
+        floatingKeyInner.classList.remove("keycap-anim");
+        void floatingKeyInner.offsetWidth;
+        floatingKeyInner.classList.add("keycap-anim");
+        window.setTimeout(() => floatingKeyGroup.setAttribute("opacity", "0"), 660);
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (!infoModal.hidden) {
+          if (e.key === "Escape") closeModal();
+          return;
+        }
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (e.key.length === 1 || e.key === " " || e.key === "Enter" || e.key === "Backspace") {
+          handleKeyPulse(e.key === "Backspace" ? "⌫" : e.key === "Enter" ? "↵" : e.key);
+        }
+      });
+
+      function runGroomCycle() {
+        if (isSleeping) return;
+        clearGroomTimers();
+        idleState = "groom";
+        groomPhase = "bow";
+        tongueOut = false;
+
+        const t1 = window.setTimeout(() => {
+          rightPawPos = { x: -12, y: -13 };
+        }, 200);
+
+        const t2 = window.setTimeout(() => {
+          groomPhase = "lick";
+          tongueOut = true;
+          rightPawPos = { x: -12, y: -16 };
+        }, 540);
+
+        const t3 = window.setTimeout(() => {
+          rightPawPos = { x: -12, y: -12 };
+        }, 840);
+
+        const t4 = window.setTimeout(() => {
+          rightPawPos = { x: -12, y: -16 };
+        }, 1140);
+
+        const t5 = window.setTimeout(() => {
+          tongueOut = false;
+          groomPhase = "return";
+          rightPawPos = { x: 28, y: 92 };
+        }, 1520);
+
+        const t6 = window.setTimeout(() => {
+          groomPhase = "none";
+          idleState = "active";
+        }, 1980);
+
+        groomTimers = [t1, t2, t3, t4, t5, t6];
+      }
+
+      // Autonomous idle behaviors & 60s sleep timer
+      window.setInterval(() => {
+        const elapsed = Date.now() - lastActivityTs;
+        if (!isSleeping && elapsed >= SLEEP_TIMEOUT_MS) {
+          putToSleep();
+          return;
+        }
+
+        if (isSleeping || idleState !== "active" || elapsed < 4000) return;
+
+        const pool = ["lookAround", "groom", "blink"];
+        const chosen = pool[idleCycle % pool.length];
+        idleCycle += 1;
+
+        if (chosen === "lookAround") {
+          idleState = "lookAround";
+          lookUntil = Date.now() + 1800;
+          window.setTimeout(() => {
+            if (!isSleeping && idleState === "lookAround") idleState = "active";
+          }, 1850);
+        } else if (chosen === "blink") {
+          idleState = "blink";
+          window.setTimeout(() => {
+            if (!isSleeping && idleState === "blink") idleState = "active";
+          }, 420);
+        } else {
+          runGroomCycle();
+        }
+      }, IDLE_CHECK_MS);
+
+      function stepAnimation() {
+        const now = Date.now();
+        const recent = keyTimestamps.filter((ts) => now - ts < 1200).length;
+        const fastTail = recent >= 4;
+        const activeTail = recent > 0;
+
+        tailPhase += fastTail ? 0.24 : activeTail ? 0.11 : 0.035;
+        const targetTail = isSleeping
+          ? Math.sin(tailPhase * 0.5) * 1.4
+          : Math.sin(tailPhase) * (fastTail ? 13 : 5);
+        tailAngle += (targetTail - tailAngle) * 0.18;
+        tailGroup.setAttribute("transform", `rotate(${tailAngle.toFixed(2)} 44 52)`);
+
+        mouseGroup.setAttribute("transform", `translate(${mouseOffset.x.toFixed(1)}, ${mouseOffset.y.toFixed(1)})`);
+
+        if (isSleeping) {
+          headState.x += (0 - headState.x) * 0.12;
+          headState.y += (9 - headState.y) * 0.12;
+          headState.rot += (-6 - headState.rot) * 0.12;
+          openEyesGroup.setAttribute("opacity", "0");
+          closedEyesGroup.setAttribute("opacity", "0.9");
+          tongueGroup.setAttribute("opacity", "0");
+          heartGroup.setAttribute("opacity", "0");
+          zzzGroup.setAttribute("opacity", "1");
+          tailCurve.setAttribute("d", "M 44 60 C 76 72, 102 70, 128 72");
+          tailCalicoTip.setAttribute("opacity", "0");
+        } else {
+          zzzGroup.setAttribute("opacity", "0");
+          tailCurve.setAttribute("d", "M 44 52 C 78 60, 92 28, 118 32");
+          tailCalicoTip.setAttribute("opacity", COAT_PALETTES[currentCoat].calico ? "1" : "0");
+          heartGroup.setAttribute("opacity", isPetting ? "1" : "0");
+
+          if (idleState === "groom") {
+            const target = groomPhase === "return"
+              ? { x: 0, y: 0, rot: 0 }
+              : groomPhase === "lick"
+                ? { x: -4, y: 14, rot: -12.5 }
+                : { x: -4, y: 13, rot: -11 };
+            headState.x += (target.x - headState.x) * 0.2;
+            headState.y += (target.y - headState.y) * 0.2;
+            headState.rot += (target.rot - headState.rot) * 0.2;
+            openEyesGroup.setAttribute("opacity", "0");
+            closedEyesGroup.setAttribute("opacity", "0.9");
+            tongueGroup.setAttribute("opacity", tongueOut ? "1" : "0");
+          } else if (idleState === "lookAround") {
+            const rem = Math.max(0, lookUntil - now);
+            const wave = Math.sin((1 - rem / 1800) * Math.PI * 2);
+            headState.x += (wave * 6 - headState.x) * 0.18;
+            headState.y += (0 - headState.y) * 0.18;
+            headState.rot += (wave * 10 - headState.rot) * 0.18;
+            openEyesGroup.setAttribute("opacity", "1");
+            closedEyesGroup.setAttribute("opacity", "0");
+            tongueGroup.setAttribute("opacity", "0");
+          } else if (idleState === "blink" || isPetting) {
+            headState.x += (0 - headState.x) * 0.15;
+            headState.y += ((isPetting ? 2.5 : 0) - headState.y) * 0.15;
+            headState.rot += (0 - headState.rot) * 0.15;
+            openEyesGroup.setAttribute("opacity", "0");
+            closedEyesGroup.setAttribute("opacity", "0.9");
+            tongueGroup.setAttribute("opacity", "0");
+          } else {
+            const dx = gazeNormX - 0.5;
+            const dy = gazeNormY - 0.5;
+            headState.x += (dx * 9 - headState.x) * 0.16;
+            headState.y += (dy * 6 - headState.y) * 0.16;
+            headState.rot += (dx * 15 - headState.rot) * 0.16;
+            openEyesGroup.setAttribute("opacity", "1");
+            closedEyesGroup.setAttribute("opacity", "0");
+            tongueGroup.setAttribute("opacity", "0");
+          }
+        }
+
+        headGroup.setAttribute(
+          "transform",
+          `translate(${headState.x.toFixed(2)}, ${headState.y.toFixed(2)}) rotate(${headState.rot.toFixed(2)} -14 -44)`
+        );
+
+        const lMidX = (-34 + leftPawPos.x) * 0.5 - 6;
+        const lMidY = (12 + leftPawPos.y) * 0.5 - 2;
+        leftArmPath.setAttribute("d", `M -34 12 Q ${lMidX.toFixed(1)} ${lMidY.toFixed(1)} ${leftPawPos.x.toFixed(1)} ${leftPawPos.y.toFixed(1)}`);
+        leftPawTip.setAttribute("cx", leftPawPos.x.toFixed(1));
+        leftPawTip.setAttribute("cy", leftPawPos.y.toFixed(1));
+        leftElbowShadow.setAttribute("cx", lMidX.toFixed(1));
+        leftElbowShadow.setAttribute("cy", (lMidY + 8).toFixed(1));
+
+        const rBend = idleState === "groom" ? 18 : 6;
+        const rLift = idleState === "groom" ? 20 : -2;
+        const rMidX = (8 + rightPawPos.x) * 0.5 + rBend;
+        const rMidY = (12 + rightPawPos.y) * 0.5 + rLift;
+        rightArmPath.setAttribute("d", `M 8 12 Q ${rMidX.toFixed(1)} ${rMidY.toFixed(1)} ${rightPawPos.x.toFixed(1)} ${rightPawPos.y.toFixed(1)}`);
+        rightPawTip.setAttribute("cx", rightPawPos.x.toFixed(1));
+        rightPawTip.setAttribute("cy", rightPawPos.y.toFixed(1));
+        rightElbowShadow.setAttribute("cx", rMidX.toFixed(1));
+        rightElbowShadow.setAttribute("cy", (rMidY + 8).toFixed(1));
+
+        if (!prefersReducedMotion) {
+          window.requestAnimationFrame(stepAnimation);
+        }
+      }
+
+      // Smooth grid-row FAQ accordion
+      document.querySelectorAll(".faq-trigger").forEach((trigger) => {
+        trigger.addEventListener("click", () => {
+          const item = trigger.closest(".faq-item");
+          const expanded = trigger.getAttribute("aria-expanded") === "true";
+          trigger.setAttribute("aria-expanded", String(!expanded));
+          if (item) {
+            item.classList.toggle("is-open", !expanded);
+          }
+        });
+      });
+
+      // Modal dialog for Download, Terms & Privacy
+      const infoModal = document.getElementById("infoModal");
+      const modalTitle = document.getElementById("modalTitle");
+      const modalBody = document.getElementById("modalBody");
+      const modalNotice = document.getElementById("modalNotice");
+      const modalCloseBtn = document.getElementById("modalCloseBtn");
+
+      function openModal(type) {
+        modalNotice.hidden = true;
+        modalNotice.textContent = "";
+
+        if (type === "download") {
+          modalTitle.textContent = "Descargar el Chambeador";
+          modalBody.innerHTML = `
+            <p>Elige tu sistema operativo para obtener el instalador de <strong>el Chambeador</strong> (un gato por ahora):</p>
+            <div class="os-choices">
+              <button type="button" class="os-option" data-os="Windows">
+                <strong style="display: block; color: var(--ink-primary);">Windows</strong>
+                <span style="font-size: 0.78rem; color: var(--ink-muted);">Escritorio</span>
+              </button>
+              <button type="button" class="os-option" data-os="macOS">
+                <strong style="display: block; color: var(--ink-primary);">macOS</strong>
+                <span style="font-size: 0.78rem; color: var(--ink-muted);">Escritorio</span>
+              </button>
+              <button type="button" class="os-option" data-os="Linux">
+                <strong style="display: block; color: var(--ink-primary);">Linux</strong>
+                <span style="font-size: 0.78rem; color: var(--ink-muted);">Escritorio</span>
+              </button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--ink-muted);">
+              ¿Quieres apoyar el desarrollo continuo? Visita <a href="https://paypal.me/SergioCampbelldev" target="_blank" rel="noopener noreferrer" style="color: var(--accent-amber); font-weight: 700; text-decoration: underline;">paypal.me/SergioCampbelldev</a>.
+            </p>
+          `;
+
+          modalBody.querySelectorAll(".os-option").forEach((option) => {
+            option.addEventListener("click", () => {
+              const osLabel = option.getAttribute("data-os");
+              modalNotice.hidden = false;
+              modalNotice.textContent = `Instalador seleccionado para ${osLabel}. Si el gato no reacciona fuera de su ventana, revisa los permisos de entrada del sistema.`;
+            });
+          });
+        } else if (type === "terms") {
+          modalTitle.textContent = "Términos y condiciones";
+          modalBody.innerHTML = `
+            <p><strong>el Chambeador</strong> se ofrece tal cual como compañero visual ligero e interactivo para el escritorio.</p>
+            <p>El proyecto está en evolución continua: las animaciones, pelajes, pausas y futuros compañeros pueden ampliarse con el tiempo.</p>
+            <p>Su uso queda sujeto a los ajustes y permisos de tu propio equipo.</p>
+          `;
+        } else if (type === "privacy") {
+          modalTitle.textContent = "Privacidad";
+          modalBody.innerHTML = `
+            <p><strong>el Chambeador no es un keylogger.</strong> No registra lo que escribes, no guarda textos ni envía información a servidores externos.</p>
+            <p>La posición del cursor y las pulsaciones se interpretan al momento en tu dispositivo para animar al personaje y gestionar su siesta tras 60 segundos sin actividad.</p>
+            <p>Los aportes voluntarios se gestionan directamente mediante PayPal.</p>
+          `;
+        }
+
+        infoModal.hidden = false;
+        modalCloseBtn.focus();
+      }
+
+      function closeModal() {
+        infoModal.hidden = true;
+      }
+
+      document.getElementById("headerDownloadBtn").addEventListener("click", () => openModal("download"));
+      document.getElementById("heroDownloadBtn").addEventListener("click", () => openModal("download"));
+      document.getElementById("pitchDownloadBtn").addEventListener("click", () => openModal("download"));
+      document.getElementById("footerDownloadBtn").addEventListener("click", () => openModal("download"));
+      document.getElementById("footerTermsBtn").addEventListener("click", () => openModal("terms"));
+      document.getElementById("footerPrivacyBtn").addEventListener("click", () => openModal("privacy"));
+      modalCloseBtn.addEventListener("click", closeModal);
+
+      infoModal.addEventListener("click", (e) => {
+        if (e.target === infoModal) closeModal();
+      });
+
+      applyCoat("siamese");
+      if (!prefersReducedMotion) {
+        window.requestAnimationFrame(stepAnimation);
+      } else {
+        stepAnimation();
+      }
+    })();
+  </script>
+</body>
+
+</html>
