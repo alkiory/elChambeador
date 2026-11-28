@@ -1,78 +1,241 @@
 # elChambeador
 
-![elChambaBanner](./elChambaBanner.png)
+<p align="center">
+  <img src="./elChambaBanner.png" alt="elChambeador - Your desktop companion" width="100%" />
+</p>
 
-[![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB?logo=tauri&logoColor=white)](https://v2.tauri.app/)
-[![Preact](https://img.shields.io/badge/Preact-673AB8?logo=preact&logoColor=white)](https://preactjs.com/)
-[![animejs](https://img.shields.io/badge/animejs-FF6B6B?logo=animejs&logoColor=white)](https://animejs.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Bun](https://img.shields.io/badge/Bun-FBF0DF?logo=bun&logoColor=black)](https://bun.sh/)
+<p align="center">
+  <a href="https://v2.tauri.app/">
+    <img src="https://img.shields.io/badge/Tauri-v2-24C8DB?logo=tauri&logoColor=white" alt="Tauri v2" />
+  </a>
+  <a href="https://preactjs.com/">
+    <img src="https://img.shields.io/badge/Preact-673AB8?logo=preact&logoColor=white" alt="Preact" />
+  </a>
+  <a href="https://animejs.com/">
+    <img src="https://img.shields.io/badge/anime.js-FF6B6B?logo=javascript&logoColor=white" alt="anime.js" />
+  </a>
+  <a href="https://www.typescriptlang.org/">
+    <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+  </a>
+  <a href="https://vite.dev/">
+    <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" alt="Vite" />
+  </a>
+  <a href="https://www.rust-lang.org/">
+    <img src="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white" alt="Rust" />
+  </a>
+  <a href="https://bun.sh/">
+    <img src="https://img.shields.io/badge/Bun-FBF0DF?logo=bun&logoColor=black" alt="Bun" />
+  </a>
+</p>
 
-Aplicación de escritorio interactiva construida con **Tauri**, **Preact**, **TypeScript**, **Vite**, **animejs** y **Rust** (`src-tauri`). Presenta una escena SVG animada de un gato de escritorio (`CatDeskScene`) que acompaña tu jornada reaccionando en tiempo real a la actividad global del sistema (teclado y ratón), alternando un repertorio completo de conductas autónomas y entrando en modo siesta tras un periodo de inactividad.
+<p align="center">
+  <strong>Tu compañero de escritorio para acompañar cada jornada de trabajo.</strong>
+</p>
+
+**elChambeador** es una aplicación de escritorio interactiva construida con **Tauri 2, Preact, TypeScript, Vite, anime.js y Rust**.
+
+La aplicación presenta una escena SVG animada de un gato de escritorio (`CatDeskScene`) que acompaña tu jornada reaccionando en tiempo real a la actividad global del sistema, incluyendo teclado y ratón.
+
+El gato cuenta con un repertorio de comportamientos autónomos, animaciones reactivas e interacciones visuales. Cuando detecta un periodo prolongado de inactividad, entra en modo siesta y despierta automáticamente al detectar nueva actividad.
+
+---
 
 ## Descarga e instalación
 
-Descarga el instalador correspondiente a tu sistema operativo desde la sección [**Releases**](../../releases) (en **Assets**):
+Descarga la versión más reciente desde [**Releases**](../../releases).
 
-- **Windows**: `.msi` o `-setup.exe`
-- **macOS**: `.dmg` (Apple Silicon / Intel)
-- **Linux**: `.AppImage` o `.deb`
+Selecciona el instalador correspondiente a tu sistema operativo:
 
-## Apoyar el proyecto
+| Sistema operativo | Formato |
+| :--- | :--- |
+| Windows | `.msi` o `-setup.exe` |
+| macOS | `.dmg` (Apple Silicon / Intel) |
+| Linux | `.AppImage` o `.deb` |
 
-Si te resulta útil o te gusta el proyecto, puedes invitarme a un café para seguir manteniendo y mejorando **elChambeador**:
+> Consulta los archivos disponibles en la sección **Assets** de cada lanzamiento.
 
-[![Apoyar en PayPal](https://img.shields.io/badge/Donar%20con-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/SergioCampbelldev)
+---
 
 ## Características principales
 
-- **Seguimiento global de entrada (`useGlobalInput`)**: escucha eventos globales de teclado y ratón emitidos desde el backend de Tauri (`input-key` e `input-mouse`) para actualizar posición normalizada del cursor, pulsaciones activas, botones de ratón y marcas de actividad.
-- **Animación reactiva y ergonomía de escritorio (`CatDeskScene`)**:
-  - Seguimiento continuo de mirada y cabeza con el puntero, respiración suave del torso, cinemática de patas articuladas sobre teclado y ratón separado (sin solapamientos), teclas flotantes en el aire y velocidad de cola adaptativa según el ritmo de escritura.
-  - Interacción directa con caricias sobre la cabeza del gato (cierre de ojos y corazones animados) y respuesta a teclas especiales (`Escape`, `Enter`, `Backspace`, `Space`).
-  - Repertorio autónomo de **7 animaciones de reposo** mediante selección sin repetición (*shuffle bag*): mirar alrededor (`lookAround`), acicalamiento con movimiento sincronizado de cabeza, lengua y pata (`groom`), parpadeo (`blink`), sacudida de orejas (`earTwitch`), estiramiento (`stretch`), ladeado curioso (`curiousTilt`) y latigazo de cola (`tailFlick`).
-  - Modo dormido (`SLEEP_TIMEOUT_MS = 60000` ms) con reposo de patas/ratón y despertar inmediato ante nuevo movimiento de ratón o pulsación de teclas.
-  - Personalización visual y sonora: 6 pelajes configurables (`siamese`, `white`, `black`, `orange`, `gray`, `calico`), tema de teclado (`dark` / claro), escala ajustable, resaltado de teclas especiales y efectos de sonido mecánicos opcionales (`deskAudio`).
-- **Integración de escritorio en Rust (`src-tauri`)**: gestión de ventana transparente, *hitboxes* interactivos y captura global de eventos mediante `rdev` y APIs de Tauri v2.
+### Seguimiento global de actividad
+
+El hook `useGlobalInput` recibe eventos globales de teclado y ratón emitidos desde el backend de Tauri:
+
+- `input-key`: seguimiento de pulsaciones de teclado.
+- `input-mouse`: seguimiento de movimientos y botones del ratón.
+- Posición normalizada del cursor.
+- Estado de las teclas y botones activos.
+- Registro de actividad para controlar los periodos de inactividad.
+
+### Escena interactiva: CatDeskScene
+
+Una escena SVG animada que responde a la actividad del usuario mediante diferentes comportamientos y animaciones.
+
+**Animaciones reactivas:**
+
+- Seguimiento continuo del puntero mediante movimientos de ojos y cabeza.
+- Respiración suave del torso.
+- Cinemática de patas articuladas sobre el teclado.
+- Interacción independiente con teclado y ratón, evitando solapamientos.
+- Teclas flotantes que reaccionan a la escritura.
+- Velocidad de movimiento de la cola adaptativa al ritmo de escritura.
+
+**Interacciones directas:**
+
+- Caricias sobre la cabeza del gato, con cierre de ojos y corazones animados.
+- Respuestas especiales a las teclas `Escape`, `Enter`, `Backspace` y `Space`.
+- Reacciones visuales a la actividad del teclado y ratón.
+
+**Comportamientos autónomos:**
+
+El gato dispone de siete animaciones de reposo seleccionadas mediante un sistema *shuffle bag*, evitando repeticiones consecutivas innecesarias.
+
+| Animación | Comportamiento |
+| :--- | :--- |
+| `lookAround` | Mira alrededor con curiosidad. |
+| `groom` | Se acicala sincronizando cabeza, lengua y pata. |
+| `blink` | Parpadea de forma natural. |
+| `earTwitch` | Sacude las orejas. |
+| `stretch` | Realiza un estiramiento. |
+| `curiousTilt` | Inclina la cabeza con curiosidad. |
+| `tailFlick` | Mueve la cola bruscamente. |
+
+### Modo descanso y reactivación
+
+Cuando no se detecta actividad durante 60 segundos, el gato entra automáticamente en modo dormido.
+
+- Tiempo de espera configurable mediante `SLEEP_TIMEOUT_MS = 60000`.
+- Animaciones de reposo adaptadas al estado de sueño.
+- Reposo de las patas y del ratón.
+- Despertar inmediato al detectar movimiento del ratón o pulsaciones de teclado.
+
+### Personalización visual y sonora
+
+Adapta la apariencia y el comportamiento del escritorio:
+
+| Opción | Configuración |
+| :--- | :--- |
+| Pelajes | Siamese, White, Black, Orange, Gray y Calico. |
+| Tema del teclado | Dark / Light. |
+| Escala | Tamaño visual ajustable. |
+| Teclas especiales | Resaltado visual configurable. |
+| Efectos de sonido | Sonidos mecánicos opcionales mediante `deskAudio`. |
+
+### Integración nativa con el escritorio
+
+El backend desarrollado en Rust (`src-tauri`) se encarga de la integración con el sistema operativo:
+
+- Gestión de ventanas transparentes mediante Tauri v2.
+- Definición y gestión de *hitboxes* interactivos.
+- Captura global de eventos de teclado y ratón mediante `rdev`.
+- Comunicación de eventos entre Rust y Preact.
+
+---
 
 ## Stack tecnológico
 
-- **Frontend**: Preact, TypeScript, Vite, `animejs`
-- **Escritorio / Backend**: Tauri (v2), Rust (`rdev`)
-- **Gestor de paquetes y runtime**: Bun
+| Tecnología | Función |
+| :--- | :--- |
+| [Tauri 2](https://v2.tauri.app/) | Framework de escritorio. |
+| [Preact](https://preactjs.com/) | Interfaz de usuario. |
+| [TypeScript](https://www.typescriptlang.org/) | Tipado estático. |
+| [Vite](https://vite.dev/) | Herramientas de desarrollo y compilación. |
+| [anime.js](https://animejs.com/) | Animaciones. |
+| [Rust](https://www.rust-lang.org/) | Backend nativo. |
+| [rdev](https://github.com/Narsil/rdev) | Captura global de entrada. |
+| [Bun](https://bun.sh/) | Runtime y gestor de paquetes. |
+
+---
 
 ## Requisitos previos
 
-- [Bun](https://bun.sh/)
-- [Rust](https://www.rust-lang.org/) y Cargo
-- Dependencias del sistema requeridas por [Tauri](https://v2.tauri.app/start/prerequisites/) para tu plataforma
+Antes de comenzar, asegúrate de tener instaladas las siguientes herramientas:
+
+- [Bun](https://bun.sh/).
+- [Rust](https://www.rust-lang.org/) y Cargo.
+- Dependencias del sistema necesarias para compilar aplicaciones con [Tauri 2](https://v2.tauri.app/start/prerequisites/).
+
+Consulta la documentación oficial de Tauri para conocer los requisitos específicos de tu sistema operativo.
+
+---
 
 ## Desarrollo
 
-Instala las dependencias y arranca el entorno de desarrollo de Tauri + Vite:
+### 1. Clonar el repositorio
+
+```bash
+git clone <repository-url>
+cd elChambeador
+```
+
+### 2. Instalar dependencias
 
 ```bash
 bun install
+```
+
+### 3. Iniciar el entorno de desarrollo
+
+Ejecuta la aplicación en modo desarrollo:
+
+```bash
 bun run tauri dev
 ```
 
-Para compilar la aplicación de escritorio para producción:
+Esto inicia el entorno de Vite junto con la aplicación de escritorio de Tauri.
+
+### 4. Compilar para producción
+
+Para generar los instaladores de escritorio:
 
 ```bash
 bun run tauri build
 ```
 
+Los artefactos generados dependerán de la plataforma y de la configuración de compilación de Tauri.
+
+---
+
 ## Estructura del proyecto
 
-- `src/hooks/useGlobalInput.tsx`: suscripción a eventos `input-key` e `input-mouse` y normalización de estado de entrada.
-- `src/components/CatDeskScene.tsx`: escena SVG interactiva, cinemática de extremidades, repertorio de 7 animaciones de reposo, caricias y modo dormido.
-- `src/utils/deskAudio.ts`: síntesis y reproducción de sonidos mecánicos de teclado y clics de ratón.
-- `src-tauri/src/lib.rs`: escucha global de entrada y control de ventana e interacción en Rust.
+Los principales componentes y módulos de la aplicación son:
+
+| Archivo | Responsabilidad |
+| :--- | :--- |
+| `src/hooks/useGlobalInput.tsx` | Suscripción a eventos `input-key` e `input-mouse` y normalización del estado de entrada. |
+| `src/components/CatDeskScene.tsx` | Escena SVG interactiva, cinemática de extremidades, animaciones autónomas, caricias y modo dormido. |
+| `src/utils/deskAudio.ts` | Síntesis y reproducción de sonidos mecánicos de teclado y clics de ratón. |
+| `src-tauri/src/lib.rs` | Captura global de entrada y gestión de ventana e interacción mediante Rust. |
+
+---
 
 ## Entorno de desarrollo recomendado
 
-- [VS Code](https://code.visualstudio.com/)
-- [Tauri VS Code Extension](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode)
-- [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-analyzer.rust-analyzer)
+Para trabajar en el proyecto se recomienda:
+
+- [Visual Studio Code](https://code.visualstudio.com/).
+- [Tauri VS Code Extension](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode).
+- [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+
+---
+
+## Apoyar el proyecto
+
+Si elChambeador te resulta útil y quieres contribuir a su mantenimiento y desarrollo, puedes invitarme a un café mediante PayPal.
+
+<p align="center">
+  <a href="https://paypal.me/SergioCampbelldev">
+    <img src="https://img.shields.io/badge/Apoyar%20el%20proyecto-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Apoyar el proyecto mediante PayPal" />
+  </a>
+</p>
+
+---
+
+<p align="center">
+  Hecho con dedicación, código y un gato que nunca deja de trabajar.
+</p>
+
+<p align="center">
+  <strong>elChambeador</strong>
+</p>
